@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>С 8 Марта, любимая!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: radial-gradient(circle at center, #fff0f3 0%, #ffe4e8 50%, #fce7f3 100%);
+        }
+
+        h1, .romantic-text {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        /* Анимация падающих цветов */
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg) translateX(0);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateY(50vh) rotate(180deg) translateX(20px);
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg) translateX(-20px);
+                opacity: 0;
+            }
+        }
+
+        .flower {
+            position: fixed;
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
+            animation-name: fall;
+            animation-timing-function: linear;
+        }
+
+        /* Эффект глассморфизма для карточек */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 20px 40px rgba(225, 175, 190, 0.3);
+        }
+
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fbcfe8;
+            border-radius: 10px;
+        }
+
+        /* Анимация курсора при печатании */
+        .cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: #f43f5e; /* rose-500 */
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* --- НОВЫЕ СТИЛИ ДЛЯ КРАСОТЫ --- */
+        /* Анимированный градиент для заголовка */
+        .gradient-text {
+            background: linear-gradient(270deg, #f43f5e, #f472b6, #c026d3, #fb7185);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 8s ease infinite;
+            filter: drop-shadow(0px 2px 4px rgba(244, 63, 94, 0.15));
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Плавное, нежное появление элементов (по очереди) */
+        .reveal-item {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 2.5s ease-out, transform 2.5s ease-out;
+        }
+
+        .reveal-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Мягкое парение самой карточки */
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating-card-anim {
+            animation: floating 6s ease-in-out infinite;
+        }
+
+        /* Плавные переходы для экранов */
+        .fade-transition {
+            transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden flex items-center justify-center relative text-gray-800 antialiased">
+
+    <!-- Контейнер для анимации падающих цветов -->
+    <div id="flowers-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- ЭКРАН 1: Первое поздравление -->
+    <div id="screen1" class="fade-transition opacity-0 relative z-10 w-full max-w-2xl mx-4 p-8 sm:p-12 glass-card rounded-3xl text-center hidden flex-col items-center justify-center floating-card-anim">
+        
+        <h1 class="reveal-item text-3xl sm:text-4xl font-semibold mb-6 leading-tight gradient-text">
+            Жаночка, любимая моя, <br/>с восьмым марта! 🌸
+        </h1>
+        
+        <div class="text-base sm:text-lg leading-relaxed text-gray-700 space-y-4 romantic-text">
+            <p class="reveal-item">
+                Сегодня всё вокруг напоминает мне о тебе — такое же светлое, теплое и по-весеннему прекрасное. Я смотрю на тебя и каждый раз благодарю судьбу за то, что ты — моя. Моя поддержка, моё вдохновение и моя будущая жена.
+            </p>
+            <p class="reveal-item">
+                Пусть твои глаза всегда сияют только от счастья, а я сделаю всё, чтобы каждый твой день был наполнен любовью и заботой. Ты — самое дорогое, что у меня есть. Люблю тебя бесконечно!
+            </p>
+        </div>
+
+        <button id="gift-button" class="reveal-item mt-10 inline-flex items-center justify-center px-8 py-3.5 text-lg font-medium text-white transition-all duration-300 transform bg-rose-400 rounded-full shadow-lg hover:bg-rose-500 hover:scale-105 hover:shadow-rose-300/50 focus:outline-none focus:ring-4 focus:ring-rose-200">
+            Получить подарок
+        </button>
+    </div>
+
+    <!-- ЭКРАН 2: Имитация живого печатания -->
+    <div id="screen2" class="fade-transition opacity-0 relative z-10 w-full max-w-2xl mx-4 p-8 sm:p-12 glass-card rounded-3xl hidden floating-card-anim">
+        <div class="text-base sm:text-xl leading-relaxed text-gray-700 romantic-text min-h-[300px]">
+            <span id="typed-text"></span><span id="typing-cursor" class="cursor"></span>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Анимация падающих цветов ---
+        // Используем белые цветы, тюльпаны и розовые акценты
+        const flowerEmojis = ['🤍', '🌷', '💮', '🌸', '🕊️']; 
+        const container = document.getElementById('flowers-container');
+
+        function createFlower() {
+            const flower = document.createElement('div');
+            flower.classList.add('flower');
+            
+            // Выбираем случайный эмодзи
+            flower.innerText = flowerEmojis[Math.floor(Math.random() * flowerEmojis.length)];
+            
+            // Случайная позиция по горизонтали
+            flower.style.left = Math.random() * 100 + 'vw';
+            
+            // Случайная длительность падения (от 5 до 10 секунд)
+            const duration = Math.random() * 5 + 5;
+            flower.style.animationDuration = duration + 's';
+            
+            // Случайный размер (от 1rem до 2rem)
+            flower.style.fontSize = (Math.random() * 1 + 1) + 'rem';
+            
+            container.appendChild(flower);
+
+            // Удаляем элемент после завершения анимации, чтобы не засорять память
+            setTimeout(() => {
+                flower.remove();
+            }, duration * 1000);
+        }
+
+        // Запускаем создание цветов каждые 300мс
+        setInterval(createFlower, 300);
+
+
+        // --- 2. Логика переключения экранов ---
+        const screen1 = document.getElementById('screen1');
+        const screen2 = document.getElementById('screen2');
+        const giftButton = document.getElementById('gift-button');
+        const typedTextContainer = document.getElementById('typed-text');
+        const cursor = document.getElementById('typing-cursor');
+
+        // Текст для второго экрана
+        const messageToType = `Мне очень жаль, что я не смог быть с тобой рядом в этот замечательный день, но я хочу чтобы он продолжал быть счастливым для тебя.\n\nЯ бы хотел вручить тебе подарок, который ты просила, но из-за причины которую ты знаешь, у меня не получилось 😞\n\nЭта страница - универсальный сертификат на покупку продукции из любого магазина на сумму 25,000 тг, которые зачислены на твой Kaspi.kz.\nПусть этот день будет для тебя таким же ярким, как дни, когда мы рядом друг с другом. С праздником тебя, любимая ❤️\n\nС любовью — твой котенок Тима (а.к. Жанчик) 😘🥰❤️‍🔥`;
+
+        // Показываем первый экран с задержкой после загрузки страницы
+        window.onload = () => {
+            screen1.classList.remove('hidden');
+            screen1.classList.add('flex');
+            
+            // Сначала плавно проявляется сама карточка
+            setTimeout(() => {
+                screen1.classList.remove('opacity-0');
+                screen1.classList.add('opacity-100');
+                
+                // Затем по очереди нежно появляются элементы внутри (заголовок, тексты, кнопка)
+                setTimeout(() => {
+                    const revealItems = document.querySelectorAll('.reveal-item');
+                    revealItems.forEach((item, index) => {
+                        setTimeout(() => {
+                            item.classList.add('visible');
+                        }, index * 1500); // 1.5 секунды между появлением абзацев, очень мягко и плавно
+                    });
+                }, 800);
+            }, 300);
+        };
+
+        // Обработка нажатия на кнопку
+        giftButton.addEventListener('click', () => {
+            // Плавно скрываем первый экран
+            screen1.classList.remove('opacity-100');
+            screen1.classList.add('opacity-0');
+
+            setTimeout(() => {
+                screen1.classList.add('hidden');
+                screen1.classList.remove('flex');
+                
+                // Показываем второй экран (пока прозрачный)
+                screen2.classList.remove('hidden');
+                
+                // Делаем второй экран видимым
+                setTimeout(() => {
+                    screen2.classList.remove('opacity-0');
+                    screen2.classList.add('opacity-100');
+                    
+                    // Запускаем печать текста через полсекунды после появления блока
+                    setTimeout(startTypewriter, 500);
+                }, 100);
+            }, 1500); // Ждем завершения анимации исчезновения (1.5с)
+        });
+
+        // --- 3. Имитация живого печатания ---
+        function startTypewriter() {
+            let i = 0;
+            
+            function typeNextChar() {
+                if (i < messageToType.length) {
+                    const char = messageToType.charAt(i);
+                    
+                    // Обработка переносов строк
+                    if (char === '\n') {
+                        typedTextContainer.innerHTML += '<br>';
+                    } else {
+                        typedTextContainer.innerHTML += char;
+                    }
+                    
+                    i++;
+                    
+                    // Добавляем случайную задержку для имитации "живого" человека
+                    // Обычные символы печатаются быстрее, знаки препинания с небольшой паузой
+                    let delay = Math.random() * 40 + 30; // 30-70мс
+                    if (char === '.' || char === ',' || char === '!') delay += 200;
+                    if (char === '\n') delay += 400;
+
+                    setTimeout(typeNextChar, delay);
+                } else {
+                    // Когда текст закончен, курсор может просто мигать
+                    cursor.style.opacity = '0.5';
+                }
+            }
+            
+            typeNextChar();
+        }
+    </script>
+</body>
+</html>
+
+
+
