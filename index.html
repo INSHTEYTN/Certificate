@@ -3,280 +3,1212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>С 8 Марта, любимая!</title>
+    <title>Крестики-нолики — Wi-Fi P2P</title>
+    <!-- Tailwind CSS для современного адаптивного интерфейса -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
-    
+    <!-- PeerJS для удобного P2P-подключения по короткому ключу -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- Шрифты Inter и JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
     <style>
+        /* Базовые стили и переменные */
         body {
-            font-family: 'Montserrat', sans-serif;
-            background: radial-gradient(circle at center, #fff0f3 0%, #ffe4e8 50%, #fce7f3 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #090d16;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(6, 182, 212, 0.14), transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(244, 63, 94, 0.14), transparent 40%);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        h1, .romantic-text {
-            font-family: 'Cormorant Garamond', serif;
+        .font-mono-key {
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Анимация падающих цветов */
-        @keyframes fall {
-            0% {
-                transform: translateY(-10vh) rotate(0deg) translateX(0);
-                opacity: 0.8;
-            }
-            50% {
-                transform: translateY(50vh) rotate(180deg) translateX(20px);
-                opacity: 0.6;
-            }
-            100% {
-                transform: translateY(110vh) rotate(360deg) translateX(-20px);
-                opacity: 0;
-            }
-        }
-
-        .flower {
-            position: fixed;
-            z-index: 0;
-            pointer-events: none;
-            user-select: none;
-            animation-name: fall;
-            animation-timing-function: linear;
-        }
-
-        /* Эффект глассморфизма для карточек */
+        /* Стеклянные панели */
         .glass-card {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 20px 40px rgba(225, 175, 190, 0.3);
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6);
         }
 
-        /* Кастомный скроллбар */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* Кнопки с объемным эффектом */
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+            box-shadow: 0 8px 24px -6px rgba(6, 182, 212, 0.45);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.6);
         }
-        ::-webkit-scrollbar-thumb {
-            background: #fbcfe8;
-            border-radius: 10px;
-        }
-
-        /* Анимация курсора при печатании */
-        .cursor::after {
-            content: '|';
-            animation: blink 1s step-end infinite;
-            color: #f43f5e; /* rose-500 */
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(1px);
         }
 
-        /* --- НОВЫЕ СТИЛИ ДЛЯ КРАСОТЫ --- */
-        /* Анимированный градиент для заголовка */
-        .gradient-text {
-            background: linear-gradient(270deg, #f43f5e, #f472b6, #c026d3, #fb7185);
-            background-size: 300% 300%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: gradient-shift 8s ease infinite;
-            filter: drop-shadow(0px 2px 4px rgba(244, 63, 94, 0.15));
+        .btn-rose {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            box-shadow: 0 8px 24px -6px rgba(244, 63, 94, 0.45);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-rose:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px -6px rgba(244, 63, 94, 0.6);
         }
 
-        @keyframes gradient-shift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        /* Игровая клетка */
+        .board-cell {
+            aspect-ratio: 1 / 1;
+            background: rgba(30, 41, 59, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .board-cell:hover:not(:disabled) {
+            background: rgba(51, 65, 85, 0.7);
+            border-color: rgba(148, 163, 184, 0.35);
+            transform: scale(1.02);
+        }
+        .board-cell:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        .board-cell.win-x {
+            background: rgba(6, 182, 212, 0.22);
+            border-color: rgba(34, 211, 238, 0.8);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
+        }
+        .board-cell.win-o {
+            background: rgba(244, 63, 94, 0.22);
+            border-color: rgba(251, 113, 133, 0.8);
+            box-shadow: 0 0 25px rgba(244, 63, 94, 0.35);
         }
 
-        /* Плавное, нежное появление элементов (по очереди) */
-        .reveal-item {
-            opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 2.5s ease-out, transform 2.5s ease-out;
+        /* Анимация прорисовки X и O */
+        @keyframes drawStroke {
+            from { stroke-dashoffset: 200; }
+            to { stroke-dashoffset: 0; }
+        }
+        .animate-draw {
+            stroke-dasharray: 200;
+            stroke-dashoffset: 0;
+            animation: drawStroke 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
-        .reveal-item.visible {
-            opacity: 1;
-            transform: translateY(0);
+        /* Анимация всплывающей эмоции */
+        @keyframes floatEmoji {
+            0% { transform: translateY(10px) scale(0.6); opacity: 0; }
+            20% { transform: translateY(0) scale(1.15); opacity: 1; }
+            80% { transform: translateY(-24px) scale(1); opacity: 1; }
+            100% { transform: translateY(-42px) scale(0.85); opacity: 0; }
+        }
+        .emoji-pop {
+            animation: floatEmoji 1.6s ease-out forwards;
         }
 
-        /* Мягкое парение самой карточки */
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
+        /* Пульсирующий индикатор сети */
+        @keyframes pulseRing {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
-
-        .floating-card-anim {
-            animation: floating 6s ease-in-out infinite;
-        }
-
-        /* Плавные переходы для экранов */
-        .fade-transition {
-            transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background: inherit;
+            animation: pulseRing 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
     </style>
 </head>
-<body class="min-h-screen overflow-x-hidden flex items-center justify-center relative text-gray-800 antialiased">
+<body class="flex flex-col items-center justify-center p-3 sm:p-6">
 
-    <!-- Контейнер для анимации падающих цветов -->
-    <div id="flowers-container" class="fixed inset-0 pointer-events-none z-0"></div>
+    <!-- Контейнер для уведомлений (вместо alert) -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-[92%] max-w-md pointer-events-none"></div>
 
-    <!-- ЭКРАН 1: Первое поздравление -->
-    <div id="screen1" class="fade-transition opacity-0 relative z-10 w-full max-w-2xl mx-4 p-8 sm:p-12 glass-card rounded-3xl text-center hidden flex-col items-center justify-center floating-card-anim">
-        
-        <h1 class="reveal-item text-3xl sm:text-4xl font-semibold mb-6 leading-tight gradient-text">
-            Жаночка, любимая моя, <br/>с восьмым марта! 🌸
-        </h1>
-        
-        <div class="text-base sm:text-lg leading-relaxed text-gray-700 space-y-4 romantic-text">
-            <p class="reveal-item">
-                Сегодня всё вокруг напоминает мне о тебе — такое же светлое, теплое и по-весеннему прекрасное. Я смотрю на тебя и каждый раз благодарю судьбу за то, что ты — моя. Моя поддержка, моё вдохновение и моя будущая жена.
-            </p>
-            <p class="reveal-item">
-                Пусть твои глаза всегда сияют только от счастья, а я сделаю всё, чтобы каждый твой день был наполнен любовью и заботой. Ты — самое дорогое, что у меня есть. Люблю тебя бесконечно!
-            </p>
-        </div>
+    <!-- Главная обёртка приложения -->
+    <main class="w-full max-w-md mx-auto flex flex-col gap-4">
 
-        <button id="gift-button" class="reveal-item mt-10 inline-flex items-center justify-center px-8 py-3.5 text-lg font-medium text-white transition-all duration-300 transform bg-rose-400 rounded-full shadow-lg hover:bg-rose-500 hover:scale-105 hover:shadow-rose-300/50 focus:outline-none focus:ring-4 focus:ring-rose-200">
-            Получить подарок
-        </button>
-    </div>
+        <!-- Шапка приложения -->
+        <header class="flex items-center justify-between px-1">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 5L11 11M11 5L5 11" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="16.5" cy="16.5" r="3.5" stroke="#fb7185" stroke-width="2.5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight leading-tight text-white">Крестики-нолики</h1>
+                    <p class="text-xs text-slate-400 font-medium">Локальная сеть Wi-Fi • P2P</p>
+                </div>
+            </div>
 
-    <!-- ЭКРАН 2: Имитация живого печатания -->
-    <div id="screen2" class="fade-transition opacity-0 relative z-10 w-full max-w-2xl mx-4 p-8 sm:p-12 glass-card rounded-3xl hidden floating-card-anim">
-        <div class="text-base sm:text-xl leading-relaxed text-gray-700 romantic-text min-h-[300px]">
-            <span id="typed-text"></span><span id="typing-cursor" class="cursor"></span>
-        </div>
-    </div>
+            <div class="flex items-center gap-2">
+                <!-- Переключатель звука -->
+                <button id="sound-toggle" type="button" title="Включить/выключить звук"
+                    class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70 text-slate-300 hover:text-white hover:bg-slate-700/80 transition">
+                    <svg id="sound-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"/>
+                    </svg>
+                    <svg id="sound-icon-off" class="w-5 h-5 hidden text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M23 9l-6 6M17 9l6 6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- ==================== ЭКРАН 1: ЛОББИ И ПОДКЛЮЧЕНИЕ ==================== -->
+        <section id="lobby-screen" class="glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-5">
+            
+            <!-- Переключатель режимов сети -->
+            <div class="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800">
+                <button data-tab="wifi" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-800 text-cyan-400 shadow">
+                    Wi-Fi Ключ
+                </button>
+                <button data-tab="offline" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200">
+                    Офлайн LAN
+                </button>
+                <button data-tab="local" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200">
+                    1 Экран
+                </button>
+            </div>
+
+            <!-- ВКЛАДКА 1: WI-FI ПО КОРОТКОМУ КЛЮЧУ (PeerJS WebRTC) -->
+            <div id="tab-wifi" class="flex flex-col gap-4">
+                <div class="rounded-2xl bg-cyan-500/10 border border-cyan-500/20 p-3.5 text-xs text-cyan-200/90 leading-relaxed">
+                    <strong class="text-cyan-300">Быстрое подключение по Wi-Fi:</strong> Хост создаёт комнату и передаёт короткий ключ другу. Данные игры идут напрямую между устройствами (P2P).
+                </div>
+
+                <!-- Блок Хоста -->
+                <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-white">Создать игру (Хост)</span>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">Играет за X</span>
+                    </div>
+
+                    <button id="btn-create-wifi" type="button" class="btn-primary w-full py-3.5 px-4 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                        </svg>
+                        <span>Создать комнату и получить ключ</span>
+                    </button>
+
+                    <!-- Отображение ключа хоста -->
+                    <div id="wifi-host-box" class="hidden flex-col gap-2.5 pt-1">
+                        <div class="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-950/90 border border-cyan-500/40">
+                            <div>
+                                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Ключ приглашения</div>
+                                <div id="wifi-host-key" class="font-mono-key text-2xl font-bold tracking-widest text-cyan-300">------</div>
+                            </div>
+                            <button id="btn-copy-wifi-key" type="button" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                                Копировать
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-400">
+                            <span class="flex items-center gap-2">
+                                <span class="relative w-2.5 h-2.5 rounded-full bg-amber-400 pulse-dot"></span>
+                                <span id="wifi-host-status">Ожидание подключения игрока...</span>
+                            </span>
+                            <button id="btn-cancel-wifi-host" type="button" class="text-rose-400 hover:text-rose-300 font-medium">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Разделитель -->
+                <div class="flex items-center gap-3">
+                    <div class="h-px flex-1 bg-slate-800"></div>
+                    <span class="text-xs font-semibold text-slate-500 uppercase">или</span>
+                    <div class="h-px flex-1 bg-slate-800"></div>
+                </div>
+
+                <!-- Блок Гостя -->
+                <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-white">Подключиться к хосту</span>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300">Играет за O</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="wifi-join-input" type="text" maxlength="6" placeholder="КЛЮЧ (напр. K7M2P9)"
+                            class="font-mono-key uppercase flex-1 px-3.5 py-3 rounded-xl bg-slate-950/90 border border-slate-700 text-white placeholder-slate-500 text-sm tracking-widest focus:outline-none focus:border-rose-500 transition">
+                        <button id="btn-join-wifi" type="button" class="btn-rose px-5 py-3 rounded-xl font-bold text-white text-sm whitespace-nowrap">
+                            Войти
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА 2: ОФЛАЙН LAN (ПРЯМОЙ WEBRTC БЕЗ ИНТЕРНЕТА) -->
+            <div id="tab-offline" class="hidden flex-col gap-4">
+                <div class="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 text-xs text-emerald-200/90 leading-relaxed">
+                    <strong class="text-emerald-300">100% локальная сеть (даже без интернета):</strong> Устройства на одном Wi-Fi роутере обмениваются зашифрованным P2P-ключом напрямую без серверов.
+                </div>
+
+                <!-- Выбор роли в Офлайн LAN -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="btn-offline-host-mode" type="button" class="py-3 px-3 rounded-xl bg-slate-800 border border-cyan-500/50 text-cyan-300 font-bold text-xs sm:text-sm transition">
+                        1. Я Хост (Создать)
+                    </button>
+                    <button id="btn-offline-guest-mode" type="button" class="py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-rose-500/50 font-bold text-xs sm:text-sm transition">
+                        2. Я Игрок (Войти)
+                    </button>
+                </div>
+
+                <!-- Панель Офлайн Хоста -->
+                <div id="offline-host-panel" class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <button id="btn-gen-offer" type="button" class="btn-primary w-full py-3 rounded-xl font-bold text-white text-sm">
+                        Сгенерировать LAN-ключ приглашения
+                    </button>
+
+                    <div id="offline-offer-area" class="hidden flex-col gap-2">
+                        <label class="text-xs font-semibold text-cyan-300">Шаг 1. Отправьте этот ключ другу:</label>
+                        <div class="flex gap-2">
+                            <textarea id="offline-offer-text" readonly rows="2" class="font-mono-key text-[11px] flex-1 p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-cyan-200 resize-none focus:outline-none"></textarea>
+                            <button id="btn-copy-offer" type="button" class="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">Копир.</button>
+                        </div>
+
+                        <label class="text-xs font-semibold text-amber-300 mt-1">Шаг 2. Вставьте ответный ключ от друга:</label>
+                        <textarea id="offline-answer-input" rows="2" placeholder="Вставьте ответный ключ сюда..." class="font-mono-key text-[11px] w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-cyan-500"></textarea>
+                        <button id="btn-accept-answer" type="button" class="btn-primary w-full py-3 rounded-xl font-bold text-white text-sm">
+                            Подключиться и начать игру
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Панель Офлайн Гостя -->
+                <div id="offline-guest-panel" class="hidden flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <label class="text-xs font-semibold text-rose-300">Шаг 1. Вставьте ключ приглашения от Хоста:</label>
+                    <textarea id="offline-offer-input" rows="2" placeholder="Вставьте ключ от Хоста..." class="font-mono-key text-[11px] w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-rose-500"></textarea>
+                    <button id="btn-gen-answer" type="button" class="btn-rose w-full py-3 rounded-xl font-bold text-white text-sm">
+                        Создать ответный ключ
+                    </button>
+
+                    <div id="offline-answer-area" class="hidden flex-col gap-2">
+                        <label class="text-xs font-semibold text-emerald-300">Шаг 2. Передайте этот ответный ключ Хосту:</label>
+                        <div class="flex gap-2">
+                            <textarea id="offline-answer-text" readonly rows="2" class="font-mono-key text-[11px] flex-1 p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 text-emerald-200 resize-none focus:outline-none"></textarea>
+                            <button id="btn-copy-answer" type="button" class="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">Копир.</button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 flex items-center gap-2">
+                            <span class="relative w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+                            Ожидание подтверждения от Хоста...
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА 3: ЛОКАЛЬНАЯ ИГРА НА ОДНОМ ЭКРАНЕ -->
+            <div id="tab-local" class="hidden flex-col gap-3">
+                <div class="rounded-2xl bg-slate-800/50 border border-slate-700/60 p-3.5 text-xs text-slate-300 leading-relaxed">
+                    Быстрая игра без сети — вдвоём на одном устройстве или против умного бота.
+                </div>
+                <button id="btn-start-local-2p" type="button" class="btn-primary w-full py-3.5 rounded-xl font-bold text-white text-sm">
+                    Вдвоём на одном экране (X vs O)
+                </button>
+                <button id="btn-start-local-ai" type="button" class="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
+                    Играть против Бота
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== ЭКРАН 2: ИГРОВОЕ ПОЛЕ ==================== -->
+        <section id="game-screen" class="hidden glass-card rounded-3xl p-5 sm:p-6 flex-col gap-4 relative">
+            
+            <!-- Плавающая зона для эмоций -->
+            <div id="emoji-overlay" class="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-20"></div>
+
+            <!-- Верхняя строка статуса сети и кнопка выхода -->
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+                <div class="flex items-center gap-2">
+                    <span id="conn-dot" class="relative w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
+                    <span id="conn-label" class="text-xs font-semibold text-slate-300">Wi-Fi P2P подключено</span>
+                </div>
+                <button id="btn-leave-game" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-rose-500/20 hover:text-rose-300 border border-slate-700 text-xs font-semibold text-slate-300 transition">
+                    Выйти
+                </button>
+            </div>
+
+            <!-- Счётчик раундов -->
+            <div class="grid grid-cols-3 gap-2.5">
+                <div id="score-card-x" class="rounded-2xl p-2.5 text-center bg-slate-900/70 border border-cyan-500/30 transition">
+                    <div id="label-player-x" class="text-[11px] font-semibold text-cyan-300 truncate">Хост (X)</div>
+                    <div id="score-x" class="text-xl font-extrabold text-white mt-0.5">0</div>
+                </div>
+                <div class="rounded-2xl p-2.5 text-center bg-slate-900/50 border border-slate-800">
+                    <div class="text-[11px] font-semibold text-slate-400">Ничьи</div>
+                    <div id="score-draw" class="text-xl font-extrabold text-slate-200 mt-0.5">0</div>
+                </div>
+                <div id="score-card-o" class="rounded-2xl p-2.5 text-center bg-slate-900/70 border border-rose-500/30 transition">
+                    <div id="label-player-o" class="text-[11px] font-semibold text-rose-300 truncate">Гость (O)</div>
+                    <div id="score-o" class="text-xl font-extrabold text-white mt-0.5">0</div>
+                </div>
+            </div>
+
+            <!-- Баннер текущего хода / результата -->
+            <div id="turn-banner" class="py-2.5 px-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center text-sm font-bold text-cyan-300 transition">
+                Ваш ход (X)
+            </div>
+
+            <!-- Игровая сетка 3x3 -->
+            <div id="game-board" class="grid grid-cols-3 gap-3 w-full max-w-[330px] mx-auto my-1">
+                <!-- 9 клеток генерируются через JS -->
+            </div>
+
+            <!-- Панель действий под полем -->
+            <div class="flex flex-col gap-3 pt-2">
+                <!-- Кнопка реванша / новой игры -->
+                <button id="btn-rematch" type="button" class="hidden btn-primary w-full py-3.5 rounded-xl font-bold text-white text-sm">
+                    Сыграть ещё раз
+                </button>
+
+                <!-- Быстрые эмоции для сетевой игры -->
+                <div id="emoji-bar" class="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                    <span class="text-[11px] font-semibold text-slate-400 pl-2">Реакция:</span>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" data-emoji="🔥" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🔥</button>
+                        <button type="button" data-emoji="👏" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">👏</button>
+                        <button type="button" data-emoji="😂" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">😂</button>
+                        <button type="button" data-emoji="🤔" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🤔</button>
+                        <button type="button" data-emoji="🤝" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🤝</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
 
     <script>
-        // --- 1. Анимация падающих цветов ---
-        // Используем белые цветы, тюльпаны и розовые акценты
-        const flowerEmojis = ['❤️', '🌷', '💮', '🌸', '🕊️', '☺️', '🥰', '😘']; 
-        const container = document.getElementById('flowers-container');
+        /**
+         * =====================================================================
+         * КРЕСТИКИ-НОЛИКИ ПО WI-FI (P2P WebRTC + PeerJS + Офлайн LAN)
+         * =====================================================================
+         * Архитектура:
+         * 1. SoundEngine — синтез звуков через Web Audio API (работает офлайн).
+         * 2. NetManager — единый слой сети для 3 режимов:
+         *    - 'wifi' (PeerJS WebRTC по короткому 6-значному ключу)
+         *    - 'offline' (прямой WebRTC DataChannel без серверов по LAN-ключу)
+         *    - 'local-2p' / 'local-ai' (игра на одном устройстве)
+         * 3. GameEngine — состояние поля 3x3, проверка побед, синхронизация ходов.
+         */
 
-        function createFlower() {
-            const flower = document.createElement('div');
-            flower.classList.add('flower');
-            
-            // Выбираем случайный эмодзи
-            flower.innerText = flowerEmojis[Math.floor(Math.random() * flowerEmojis.length)];
-            
-            // Случайная позиция по горизонтали
-            flower.style.left = Math.random() * 100 + 'vw';
-            
-            // Случайная длительность падения (от 5 до 10 секунд)
-            const duration = Math.random() * 5 + 5;
-            flower.style.animationDuration = duration + 's';
-            
-            // Случайный размер (от 1rem до 2rem)
-            flower.style.fontSize = (Math.random() * 1 + 1) + 'rem';
-            
-            container.appendChild(flower);
-
-            // Удаляем элемент после завершения анимации, чтобы не засорять память
-            setTimeout(() => {
-                flower.remove();
-            }, duration * 1000);
-        }
-
-        // Запускаем создание цветов каждые 300мс
-        setInterval(createFlower, 300);
-
-
-        // --- 2. Логика переключения экранов ---
-        const screen1 = document.getElementById('screen1');
-        const screen2 = document.getElementById('screen2');
-        const giftButton = document.getElementById('gift-button');
-        const typedTextContainer = document.getElementById('typed-text');
-        const cursor = document.getElementById('typing-cursor');
-
-        // Текст для второго экрана
-        const messageToType = `Этот сайт - универсальный сертификат на покупку продукции из любого магазина на сумму 20,000 ₸, которые зачислены на твой Kaspi.kz.\n\nПусть этот день будет для тебя таким же ярким, как дни, когда мы рядом друг с другом. С праздником тебя, любимая ❤️\n\nС любовью — твой котенок Тима (а.к. Жанчик) 😘🥰❤️‍🔥`;
-
-        // Показываем первый экран с задержкой после загрузки страницы
-        window.onload = () => {
-            screen1.classList.remove('hidden');
-            screen1.classList.add('flex');
-            
-            // Сначала плавно проявляется сама карточка
-            setTimeout(() => {
-                screen1.classList.remove('opacity-0');
-                screen1.classList.add('opacity-100');
-                
-                // Затем по очереди нежно появляются элементы внутри (заголовок, тексты, кнопка)
-                setTimeout(() => {
-                    const revealItems = document.querySelectorAll('.reveal-item');
-                    revealItems.forEach((item, index) => {
-                        setTimeout(() => {
-                            item.classList.add('visible');
-                        }, index * 1500); // 1.5 секунды между появлением абзацев, очень мягко и плавно
-                    });
-                }, 800);
-            }, 300);
+        // ===================== 1. ЗВУКОВОЙ ДВИЖОК =====================
+        const SoundEngine = {
+            ctx: null,
+            enabled: true,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume().catch(() => {});
+                }
+            },
+            playTone(freq, duration = 0.12, type = 'sine', vol = 0.12) {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) { /* игнорируем ошибки автовоспроизведения */ }
+            },
+            moveX() { this.playTone(520, 0.11, 'triangle', 0.14); },
+            moveO() { this.playTone(390, 0.12, 'sine', 0.14); },
+            connect() {
+                this.playTone(440, 0.1, 'sine', 0.1);
+                setTimeout(() => this.playTone(660, 0.15, 'sine', 0.12), 100);
+            },
+            win() {
+                [523, 659, 784, 1046].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 0.18, 'triangle', 0.12), i * 90);
+                });
+            },
+            draw() {
+                this.playTone(330, 0.15, 'sine', 0.1);
+                setTimeout(() => this.playTone(290, 0.22, 'sine', 0.1), 130);
+            }
         };
 
-        // Обработка нажатия на кнопку
-        giftButton.addEventListener('click', () => {
-            // Плавно скрываем первый экран
-            screen1.classList.remove('opacity-100');
-            screen1.classList.add('opacity-0');
-
+        // ===================== 2. УТИЛИТЫ UI =====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const styles = {
+                info: 'bg-slate-800/95 border-cyan-500/40 text-cyan-100',
+                success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100',
+                error: 'bg-rose-950/95 border-rose-500/50 text-rose-100',
+                warn: 'bg-amber-950/95 border-amber-500/50 text-amber-100'
+            };
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border text-xs sm:text-sm font-medium shadow-xl backdrop-blur-md transition-all duration-300 text-center ${styles[type] || styles.info}`;
+            toast.textContent = message;
+            container.appendChild(toast);
             setTimeout(() => {
-                screen1.classList.add('hidden');
-                screen1.classList.remove('flex');
-                
-                // Показываем второй экран (пока прозрачный)
-                screen2.classList.remove('hidden');
-                
-                // Делаем второй экран видимым
-                setTimeout(() => {
-                    screen2.classList.remove('opacity-0');
-                    screen2.classList.add('opacity-100');
-                    
-                    // Запускаем печать текста через полсекунды после появления блока
-                    setTimeout(startTypewriter, 500);
-                }, 100);
-            }, 1500); // Ждем завершения анимации исчезновения (1.5с)
-        });
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
 
-        // --- 3. Имитация живого печатания ---
-        function startTypewriter() {
-            let i = 0;
-            
-            function typeNextChar() {
-                if (i < messageToType.length) {
-                    const char = messageToType.charAt(i);
-                    
-                    // Обработка переносов строк
-                    if (char === '\n') {
-                        typedTextContainer.innerHTML += '<br>';
-                    } else {
-                        typedTextContainer.innerHTML += char;
-                    }
-                    
-                    i++;
-                    
-                    // Добавляем случайную задержку для имитации "живого" человека
-                    // Обычные символы печатаются быстрее, знаки препинания с небольшой паузой
-                    let delay = Math.random() * 40 + 30; // 30-70мс
-                    if (char === '.' || char === ',' || char === '!') delay += 200;
-                    if (char === '\n') delay += 400;
-
-                    setTimeout(typeNextChar, delay);
+        // Надёжное копирование в буфер обмена (работает даже внутри iframe)
+        function copyToClipboard(text) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (ok) {
+                    showToast('Ключ скопирован в буфер обмена!', 'success');
                 } else {
-                    // Когда текст закончен, курсор может просто мигать
-                    cursor.style.opacity = '0.5';
+                    showToast('Выделите и скопируйте ключ вручную', 'warn');
+                }
+            } catch (e) {
+                showToast('Не удалось скопировать автоматически', 'error');
+            }
+        }
+
+        function generateShortKey(length = 6) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Кодирование/декодирование SDP для Офлайн LAN-ключа
+        function encodeSDP(desc) {
+            const minimal = { t: desc.type === 'offer' ? 0 : 1, s: desc.sdp };
+            return btoa(unescape(encodeURIComponent(JSON.stringify(minimal))));
+        }
+
+        function decodeSDP(str) {
+            const cleaned = str.trim().replace(/\s+/g, '');
+            const obj = JSON.parse(decodeURIComponent(escape(atob(cleaned))));
+            return { type: obj.t === 0 ? 'offer' : 'answer', sdp: obj.s };
+        }
+
+        // ===================== 3. СОСТОЯНИЕ ИГРЫ =====================
+        const WIN_LINES = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        const state = {
+            mode: null,        // 'wifi' | 'offline' | 'local-2p' | 'local-ai'
+            role: 'host',      // 'host' (X) | 'guest' (O)
+            mySymbol: 'X',
+            board: Array(9).fill(null),
+            currentTurn: 'X',
+            startingTurn: 'X',
+            gameOver: false,
+            winLine: null,
+            scores: { X: 0, O: 0, draw: 0 },
+            // Сетевые объекты
+            peer: null,
+            conn: null,
+            rtcPC: null,
+            rtcDC: null
+        };
+
+        const PEER_PREFIX = 'xo-wifi-lan-2026-';
+
+        // ===================== 4. СЕТЕВОЙ МЕНЕДЖЕР =====================
+        const Net = {
+            cleanup() {
+                try { if (state.conn) state.conn.close(); } catch (e) {}
+                try { if (state.peer) state.peer.destroy(); } catch (e) {}
+                try { if (state.rtcDC) state.rtcDC.close(); } catch (e) {}
+                try { if (state.rtcPC) state.rtcPC.close(); } catch (e) {}
+                state.conn = null;
+                state.peer = null;
+                state.rtcDC = null;
+                state.rtcPC = null;
+            },
+
+            send(payload) {
+                const msg = JSON.stringify(payload);
+                try {
+                    if (state.mode === 'wifi' && state.conn && state.conn.open) {
+                        state.conn.send(payload);
+                    } else if (state.mode === 'offline' && state.rtcDC && state.rtcDC.readyState === 'open') {
+                        state.rtcDC.send(msg);
+                    }
+                } catch (e) {
+                    showToast('Ошибка отправки данных по сети', 'error');
+                }
+            },
+
+            handleIncoming(data) {
+                try {
+                    const msg = typeof data === 'string' ? JSON.parse(data) : data;
+                    if (!msg || !msg.type) return;
+
+                    if (msg.type === 'move') {
+                        applyMove(msg.index, msg.symbol, true);
+                    } else if (msg.type === 'restart') {
+                        state.startingTurn = msg.starter;
+                        resetRound(false);
+                        showToast('Начат новый раунд!', 'info');
+                    } else if (msg.type === 'emoji') {
+                        showFloatingEmoji(msg.emoji);
+                    }
+                } catch (e) {
+                    console.error('Ошибка обработки пакета:', e);
+                }
+            },
+
+            // --- РЕЖИМ 1: Wi-Fi через PeerJS (короткий ключ) ---
+            createWifiHost() {
+                if (typeof Peer === 'undefined') {
+                    showToast('Нет доступа к PeerJS. Используйте вкладку «Офлайн LAN»!', 'warn');
+                    return;
+                }
+                this.cleanup();
+                const shortKey = generateShortKey(6);
+                const fullId = PEER_PREFIX + shortKey;
+
+                document.getElementById('btn-create-wifi').disabled = true;
+                document.getElementById('wifi-host-box').classList.remove('hidden');
+                document.getElementById('wifi-host-box').classList.add('flex');
+                document.getElementById('wifi-host-key').textContent = shortKey;
+                document.getElementById('wifi-host-status').textContent = 'Регистрация комнаты...';
+
+                try {
+                    state.peer = new Peer(fullId, { debug: 0 });
+                } catch (e) {
+                    showToast('Ошибка инициализации P2P', 'error');
+                    this.resetWifiHostUI();
+                    return;
+                }
+
+                state.peer.on('open', () => {
+                    document.getElementById('wifi-host-status').textContent = 'Ожидание подключения игрока...';
+                    showToast(`Комната создана! Ключ: ${shortKey}`, 'success');
+                });
+
+                state.peer.on('connection', (conn) => {
+                    if (state.conn) {
+                        conn.close();
+                        return;
+                    }
+                    state.conn = conn;
+                    this.setupPeerConnection(conn, 'host');
+                });
+
+                state.peer.on('error', (err) => {
+                    console.error(err);
+                    showToast('Ошибка сети Wi-Fi P2P. Попробуйте снова или «Офлайн LAN».', 'error');
+                    this.resetWifiHostUI();
+                });
+            },
+
+            joinWifiHost(rawKey) {
+                if (typeof Peer === 'undefined') {
+                    showToast('Нет доступа к PeerJS. Используйте вкладку «Офлайн LAN»!', 'warn');
+                    return;
+                }
+                const key = rawKey.trim().toUpperCase();
+                if (key.length < 4) {
+                    showToast('Введите корректный ключ комнаты', 'warn');
+                    return;
+                }
+
+                this.cleanup();
+                const btn = document.getElementById('btn-join-wifi');
+                btn.disabled = true;
+                btn.textContent = '...';
+
+                try {
+                    state.peer = new Peer({ debug: 0 });
+                } catch (e) {
+                    showToast('Ошибка инициализации P2P', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Войти';
+                    return;
+                }
+
+                let timeoutId = setTimeout(() => {
+                    if (!state.conn || !state.conn.open) {
+                        showToast('Хост не найден. Проверьте ключ.', 'error');
+                        this.cleanup();
+                        btn.disabled = false;
+                        btn.textContent = 'Войти';
+                    }
+                }, 10000);
+
+                state.peer.on('open', () => {
+                    const conn = state.peer.connect(PEER_PREFIX + key, { reliable: true });
+                    state.conn = conn;
+                    this.setupPeerConnection(conn, 'guest', () => {
+                        clearTimeout(timeoutId);
+                        btn.disabled = false;
+                        btn.textContent = 'Войти';
+                    });
+                });
+
+                state.peer.on('error', () => {
+                    clearTimeout(timeoutId);
+                    showToast('Не удалось подключиться к хосту. Проверьте ключ.', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Войти';
+                });
+            },
+
+            setupPeerConnection(conn, role, onReady) {
+                conn.on('open', () => {
+                    if (onReady) onReady();
+                    SoundEngine.connect();
+                    startGameSession('wifi', role);
+                    showToast('Соединение по Wi-Fi установлено!', 'success');
+                });
+
+                conn.on('data', (data) => this.handleIncoming(data));
+
+                conn.on('close', () => {
+                    showToast('Соперник отключился от игры', 'warn');
+                    document.getElementById('conn-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    document.getElementById('conn-label').textContent = 'Соединение потеряно';
+                });
+
+                conn.on('error', () => {
+                    showToast('Сбой P2P-соединения', 'error');
+                });
+            },
+
+            resetWifiHostUI() {
+                this.cleanup();
+                document.getElementById('btn-create-wifi').disabled = false;
+                document.getElementById('wifi-host-box').classList.add('hidden');
+                document.getElementById('wifi-host-box').classList.remove('flex');
+            },
+
+            // --- РЕЖИМ 2: Офлайн LAN (Прямой WebRTC без серверов) ---
+            async createOfflineOffer() {
+                this.cleanup();
+                try {
+                    // Пустой список iceServers = работа строго по локальному Wi-Fi / LAN
+                    const pc = new RTCPeerConnection({ iceServers: [] });
+                    state.rtcPC = pc;
+
+                    const dc = pc.createDataChannel('tictactoe-lan');
+                    state.rtcDC = dc;
+                    this.bindOfflineChannel(dc, 'host');
+
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+
+                    await this.waitForIceComplete(pc);
+                    const key = encodeSDP(pc.localDescription);
+
+                    document.getElementById('offline-offer-text').value = key;
+                    document.getElementById('offline-offer-area').classList.remove('hidden');
+                    document.getElementById('offline-offer-area').classList.add('flex');
+                    showToast('LAN-ключ создан! Передайте его второму игроку.', 'success');
+                } catch (e) {
+                    console.error(e);
+                    showToast('Ошибка создания LAN-ключа', 'error');
+                }
+            },
+
+            async acceptOfflineAnswer(answerStr) {
+                if (!state.rtcPC) {
+                    showToast('Сначала сгенерируйте ключ приглашения', 'warn');
+                    return;
+                }
+                try {
+                    const desc = decodeSDP(answerStr);
+                    await state.rtcPC.setRemoteDescription(new RTCSessionDescription(desc));
+                    showToast('Подключение к игроку в локальной сети...', 'info');
+                } catch (e) {
+                    console.error(e);
+                    showToast('Неверный формат ответного ключа', 'error');
+                }
+            },
+
+            async createOfflineAnswer(offerStr) {
+                this.cleanup();
+                try {
+                    const offerDesc = decodeSDP(offerStr);
+                    const pc = new RTCPeerConnection({ iceServers: [] });
+                    state.rtcPC = pc;
+
+                    pc.ondatachannel = (event) => {
+                        state.rtcDC = event.channel;
+                        this.bindOfflineChannel(event.channel, 'guest');
+                    };
+
+                    await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+
+                    await this.waitForIceComplete(pc);
+                    const answerKey = encodeSDP(pc.localDescription);
+
+                    document.getElementById('offline-answer-text').value = answerKey;
+                    document.getElementById('offline-answer-area').classList.remove('hidden');
+                    document.getElementById('offline-answer-area').classList.add('flex');
+                    showToast('Ответный ключ готов! Передайте его Хосту.', 'success');
+                } catch (e) {
+                    console.error(e);
+                    showToast('Не удалось прочитать ключ приглашения', 'error');
+                }
+            },
+
+            waitForIceComplete(pc) {
+                return new Promise((resolve) => {
+                    if (pc.iceGatheringState === 'complete') {
+                        resolve();
+                        return;
+                    }
+                    const timer = setTimeout(resolve, 2000);
+                    pc.onicegatheringstatechange = () => {
+                        if (pc.iceGatheringState === 'complete') {
+                            clearTimeout(timer);
+                            resolve();
+                        }
+                    };
+                });
+            },
+
+            bindOfflineChannel(dc, role) {
+                dc.onopen = () => {
+                    SoundEngine.connect();
+                    startGameSession('offline', role);
+                    showToast('Прямое LAN-соединение установлено!', 'success');
+                };
+                dc.onmessage = (e) => this.handleIncoming(e.data);
+                dc.onclose = () => {
+                    showToast('LAN-соединение закрыто', 'warn');
+                    document.getElementById('conn-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    document.getElementById('conn-label').textContent = 'Соединение потеряно';
+                };
+            }
+        };
+
+        // ===================== 5. ИГРОВАЯ ЛОГИКА =====================
+        function startGameSession(mode, role = 'host') {
+            state.mode = mode;
+            state.role = role;
+            state.mySymbol = role === 'host' ? 'X' : 'O';
+            state.scores = { X: 0, O: 0, draw: 0 };
+            state.startingTurn = 'X';
+
+            // Настройка подписей игроков
+            const labelX = document.getElementById('label-player-x');
+            const labelO = document.getElementById('label-player-o');
+            const connLabel = document.getElementById('conn-label');
+            const connDot = document.getElementById('conn-dot');
+            const emojiBar = document.getElementById('emoji-bar');
+
+            connDot.className = 'relative w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot';
+
+            if (mode === 'wifi' || mode === 'offline') {
+                labelX.textContent = role === 'host' ? 'Вы • Хост (X)' : 'Хост (X)';
+                labelO.textContent = role === 'guest' ? 'Вы • Гость (O)' : 'Гость (O)';
+                connLabel.textContent = mode === 'wifi' ? 'Wi-Fi P2P • Подключено' : 'Офлайн LAN • Прямой P2P';
+                emojiBar.classList.remove('hidden');
+            } else if (mode === 'local-2p') {
+                labelX.textContent = 'Игрок 1 (X)';
+                labelO.textContent = 'Игрок 2 (O)';
+                connLabel.textContent = 'Локально • 2 игрока';
+                emojiBar.classList.add('hidden');
+            } else if (mode === 'local-ai') {
+                labelX.textContent = 'Вы (X)';
+                labelO.textContent = 'Бот (O)';
+                connLabel.textContent = 'Локально • Против Бота';
+                emojiBar.classList.add('hidden');
+            }
+
+            // Переключение экранов
+            document.getElementById('lobby-screen').classList.add('hidden');
+            const gameScreen = document.getElementById('game-screen');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+
+            updateScoreUI();
+            resetRound(false);
+        }
+
+        function resetRound(broadcast = false) {
+            state.board = Array(9).fill(null);
+            state.currentTurn = state.startingTurn;
+            state.gameOver = false;
+            state.winLine = null;
+
+            document.getElementById('btn-rematch').classList.add('hidden');
+            renderBoard();
+            updateTurnBanner();
+
+            if (broadcast && (state.mode === 'wifi' || state.mode === 'offline')) {
+                Net.send({ type: 'restart', starter: state.startingTurn });
+            }
+
+            // Если в режиме с ботом первый ход у бота
+            if (state.mode === 'local-ai' && state.currentTurn === 'O') {
+                setTimeout(makeBotMove, 450);
+            }
+        }
+
+        function handleCellClick(index) {
+            if (state.gameOver || state.board[index] !== null) return;
+
+            // В сетевых режимах разрешаем ходить только в свой ход
+            if (state.mode === 'wifi' || state.mode === 'offline') {
+                if (state.currentTurn !== state.mySymbol) {
+                    showToast('Сейчас ход соперника!', 'warn');
+                    return;
+                }
+                applyMove(index, state.mySymbol, false);
+                Net.send({ type: 'move', index, symbol: state.mySymbol });
+                return;
+            }
+
+            // В режиме против бота игрок всегда X
+            if (state.mode === 'local-ai') {
+                if (state.currentTurn !== 'X') return;
+                applyMove(index, 'X', false);
+                if (!state.gameOver) {
+                    setTimeout(makeBotMove, 420);
+                }
+                return;
+            }
+
+            // Локальный режим на двоих
+            applyMove(index, state.currentTurn, false);
+        }
+
+        function applyMove(index, symbol, isRemote) {
+            if (state.gameOver || state.board[index] !== null) return;
+
+            state.board[index] = symbol;
+            if (symbol === 'X') SoundEngine.moveX();
+            else SoundEngine.moveO();
+
+            const winLine = checkWinner(state.board, symbol);
+            if (winLine) {
+                state.gameOver = true;
+                state.winLine = winLine;
+                state.scores[symbol]++;
+                SoundEngine.win();
+                updateScoreUI();
+                renderBoard();
+                showEndState(symbol);
+                return;
+            }
+
+            if (state.board.every(cell => cell !== null)) {
+                state.gameOver = true;
+                state.scores.draw++;
+                SoundEngine.draw();
+                updateScoreUI();
+                renderBoard();
+                showEndState('draw');
+                return;
+            }
+
+            state.currentTurn = symbol === 'X' ? 'O' : 'X';
+            renderBoard();
+            updateTurnBanner();
+        }
+
+        function checkWinner(board, symbol) {
+            for (const line of WIN_LINES) {
+                if (line.every(idx => board[idx] === symbol)) {
+                    return line;
                 }
             }
-            
-            typeNextChar();
+            return null;
         }
+
+        // Умный бот (Минимакс с небольшой вариативностью)
+        function makeBotMove() {
+            if (state.gameOver || state.currentTurn !== 'O') return;
+            const bestIdx = findBestMove(state.board);
+            if (bestIdx !== -1) {
+                applyMove(bestIdx, 'O', false);
+            }
+        }
+
+        function findBestMove(board) {
+            // 1. Выиграть, если возможно
+            for (let i = 0; i < 9; i++) {
+                if (!board[i]) {
+                    board[i] = 'O';
+                    if (checkWinner(board, 'O')) { board[i] = null; return i; }
+                    board[i] = null;
+                }
+            }
+            // 2. Заблокировать игрока
+            for (let i = 0; i < 9; i++) {
+                if (!board[i]) {
+                    board[i] = 'X';
+                    if (checkWinner(board, 'X')) { board[i] = null; return i; }
+                    board[i] = null;
+                }
+            }
+            // 3. Центр
+            if (!board[4]) return 4;
+            // 4. Случайный угол или клетка
+            const corners = [0, 2, 6, 8].filter(i => !board[i]);
+            if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+            const empty = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+            return empty.length ? empty[Math.floor(Math.random() * empty.length)] : -1;
+        }
+
+        // ===================== 6. ОТРИСОВКА ИНТЕРФЕЙСА =====================
+        function getSymbolSVG(symbol) {
+            if (symbol === 'X') {
+                return `
+                    <svg class="w-12 h-12 sm:w-14 sm:h-14" viewBox="0 0 64 64" fill="none">
+                        <path class="animate-draw" d="M16 16L48 48" stroke="#22d3ee" stroke-width="7" stroke-linecap="round"/>
+                        <path class="animate-draw" d="M48 16L16 48" stroke="#22d3ee" stroke-width="7" stroke-linecap="round"/>
+                    </svg>
+                `;
+            }
+            if (symbol === 'O') {
+                return `
+                    <svg class="w-12 h-12 sm:w-14 sm:h-14" viewBox="0 0 64 64" fill="none">
+                        <circle class="animate-draw" cx="32" cy="32" r="18" stroke="#fb7185" stroke-width="7"/>
+                    </svg>
+                `;
+            }
+            return '';
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.innerHTML = '';
+
+            state.board.forEach((cell, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                let classes = 'board-cell rounded-2xl flex items-center justify-center focus:outline-none';
+
+                if (state.winLine && state.winLine.includes(idx)) {
+                    classes += cell === 'X' ? ' win-x' : ' win-o';
+                }
+
+                btn.className = classes;
+                btn.disabled = state.gameOver || cell !== null;
+                btn.innerHTML = getSymbolSVG(cell);
+                btn.addEventListener('click', () => handleCellClick(idx));
+                boardEl.appendChild(btn);
+            });
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-x').textContent = state.scores.X;
+            document.getElementById('score-o').textContent = state.scores.O;
+            document.getElementById('score-draw').textContent = state.scores.draw;
+        }
+
+        function updateTurnBanner() {
+            const banner = document.getElementById('turn-banner');
+            const isOnline = state.mode === 'wifi' || state.mode === 'offline';
+
+            if (isOnline) {
+                const myTurn = state.currentTurn === state.mySymbol;
+                if (myTurn) {
+                    banner.textContent = `Ваш ход (${state.mySymbol})`;
+                    banner.className = `py-2.5 px-4 rounded-2xl text-center text-sm font-bold border transition ${
+                        state.mySymbol === 'X'
+                            ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                            : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                    }`;
+                } else {
+                    banner.textContent = `Ход соперника (${state.currentTurn})...`;
+                    banner.className = 'py-2.5 px-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center text-sm font-semibold text-slate-400 transition';
+                }
+            } else {
+                const text = state.currentTurn === 'X'
+                    ? (state.mode === 'local-ai' ? 'Ваш ход (X)' : 'Ходит Игрок 1 (X)')
+                    : (state.mode === 'local-ai' ? 'Бот думает...' : 'Ходит Игрок 2 (O)');
+                banner.textContent = text;
+                banner.className = `py-2.5 px-4 rounded-2xl text-center text-sm font-bold border transition ${
+                    state.currentTurn === 'X'
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                        : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                }`;
+            }
+        }
+
+        function showEndState(result) {
+            const banner = document.getElementById('turn-banner');
+            const rematchBtn = document.getElementById('btn-rematch');
+            const isOnline = state.mode === 'wifi' || state.mode === 'offline';
+
+            if (result === 'draw') {
+                banner.textContent = 'Ничья! Отличная партия 🤝';
+                banner.className = 'py-2.5 px-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-center text-sm font-bold text-amber-300';
+            } else if (isOnline) {
+                const iWon = result === state.mySymbol;
+                banner.textContent = iWon ? 'Вы победили! 🎉' : 'Соперник победил! 💫';
+                banner.className = iWon
+                    ? 'py-2.5 px-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-center text-sm font-bold text-emerald-300'
+                    : 'py-2.5 px-4 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-center text-sm font-bold text-rose-300';
+            } else {
+                const winnerText = result === 'X'
+                    ? (state.mode === 'local-ai' ? 'Вы победили! 🎉' : 'Победил Игрок 1 (X)! 🎉')
+                    : (state.mode === 'local-ai' ? 'Победил Бот (O) 🤖' : 'Победил Игрок 2 (O)! 🎉');
+                banner.textContent = winnerText;
+                banner.className = 'py-2.5 px-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-center text-sm font-bold text-emerald-300';
+            }
+
+            rematchBtn.classList.remove('hidden');
+        }
+
+        function showFloatingEmoji(emoji) {
+            const overlay = document.getElementById('emoji-overlay');
+            const el = document.createElement('div');
+            el.className = 'emoji-pop text-4xl drop-shadow-lg';
+            el.textContent = emoji;
+            overlay.appendChild(el);
+            setTimeout(() => el.remove(), 1700);
+        }
+
+        // ===================== 7. ОБРАБОТЧИКИ СОБЫТИЙ =====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Переключение вкладок лобби
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabs = {
+                wifi: document.getElementById('tab-wifi'),
+                offline: document.getElementById('tab-offline'),
+                local: document.getElementById('tab-local')
+            };
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.tab;
+                    tabBtns.forEach(b => {
+                        b.className = 'tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200';
+                    });
+                    btn.className = 'tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-800 text-cyan-400 shadow';
+
+                    Object.entries(tabs).forEach(([key, el]) => {
+                        if (key === target) {
+                            el.classList.remove('hidden');
+                            el.classList.add('flex');
+                        } else {
+                            el.classList.add('hidden');
+                            el.classList.remove('flex');
+                        }
+                    });
+                });
+            });
+
+            // Кнопка звука
+            document.getElementById('sound-toggle').addEventListener('click', () => {
+                SoundEngine.enabled = !SoundEngine.enabled;
+                document.getElementById('sound-icon-on').classList.toggle('hidden', !SoundEngine.enabled);
+                document.getElementById('sound-icon-off').classList.toggle('hidden', SoundEngine.enabled);
+                if (SoundEngine.enabled) SoundEngine.moveX();
+            });
+
+            // Wi-Fi (PeerJS) события
+            document.getElementById('btn-create-wifi').addEventListener('click', () => Net.createWifiHost());
+            document.getElementById('btn-cancel-wifi-host').addEventListener('click', () => Net.resetWifiHostUI());
+            document.getElementById('btn-copy-wifi-key').addEventListener('click', () => {
+                copyToClipboard(document.getElementById('wifi-host-key').textContent);
+            });
+            document.getElementById('btn-join-wifi').addEventListener('click', () => {
+                Net.joinWifiHost(document.getElementById('wifi-join-input').value);
+            });
+            document.getElementById('wifi-join-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') Net.joinWifiHost(e.target.value);
+            });
+
+            // Офлайн LAN события
+            const hostModeBtn = document.getElementById('btn-offline-host-mode');
+            const guestModeBtn = document.getElementById('btn-offline-guest-mode');
+            const hostPanel = document.getElementById('offline-host-panel');
+            const guestPanel = document.getElementById('offline-guest-panel');
+
+            hostModeBtn.addEventListener('click', () => {
+                hostPanel.classList.remove('hidden');
+                hostPanel.classList.add('flex');
+                guestPanel.classList.add('hidden');
+                guestPanel.classList.remove('flex');
+                hostModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-800 border border-cyan-500/50 text-cyan-300 font-bold text-xs sm:text-sm transition';
+                guestModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-rose-500/50 font-bold text-xs sm:text-sm transition';
+            });
+
+            guestModeBtn.addEventListener('click', () => {
+                guestPanel.classList.remove('hidden');
+                guestPanel.classList.add('flex');
+                hostPanel.classList.add('hidden');
+                hostPanel.classList.remove('flex');
+                guestModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-800 border border-rose-500/50 text-rose-300 font-bold text-xs sm:text-sm transition';
+                hostModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-cyan-500/50 font-bold text-xs sm:text-sm transition';
+            });
+
+            document.getElementById('btn-gen-offer').addEventListener('click', () => Net.createOfflineOffer());
+            document.getElementById('btn-copy-offer').addEventListener('click', () => {
+                copyToClipboard(document.getElementById('offline-offer-text').value);
+            });
+            document.getElementById('btn-accept-answer').addEventListener('click', () => {
+                Net.acceptOfflineAnswer(document.getElementById('offline-answer-input').value);
+            });
+            document.getElementById('btn-gen-answer').addEventListener('click', () => {
+                Net.createOfflineAnswer(document.getElementById('offline-offer-input').value);
+            });
+            document.getElementById('btn-copy-answer').addEventListener('click', () => {
+                copyToClipboard(document.getElementById('offline-answer-text').value);
+            });
+
+            // Локальные режимы
+            document.getElementById('btn-start-local-2p').addEventListener('click', () => startGameSession('local-2p', 'host'));
+            document.getElementById('btn-start-local-ai').addEventListener('click', () => startGameSession('local-ai', 'host'));
+
+            // Реванш (чередуем, кто ходит первым в новом раунде)
+            document.getElementById('btn-rematch').addEventListener('click', () => {
+                state.startingTurn = state.startingTurn === 'X' ? 'O' : 'X';
+                resetRound(true);
+            });
+
+            // Выход в лобби
+            document.getElementById('btn-leave-game').addEventListener('click', () => {
+                Net.resetWifiHostUI();
+                document.getElementById('game-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('flex');
+                document.getElementById('lobby-screen').classList.remove('hidden');
+            });
+
+            // Быстрые эмоции
+            document.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const emoji = btn.dataset.emoji;
+                    showFloatingEmoji(emoji);
+                    Net.send({ type: 'emoji', emoji });
+                });
+            });
+        });
     </script>
 </body>
 </html>
-
