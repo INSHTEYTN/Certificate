@@ -1,1214 +1,3611 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики-нолики — Wi-Fi P2P</title>
-    <!-- Tailwind CSS для современного адаптивного интерфейса -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PeerJS для удобного P2P-подключения по короткому ключу -->
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <!-- Шрифты Inter и JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Базовые стили и переменные */
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #090d16;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(6, 182, 212, 0.14), transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(244, 63, 94, 0.14), transparent 40%);
-            color: #f8fafc;
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#07090F" />
+  <title>NVR VIP Turf Club — 3D Horse Racing Casino</title>
 
-        .font-mono-key {
-            font-family: 'JetBrains Mono', monospace;
-        }
+  <!-- Premium Casino Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-        /* Стеклянные панели */
-        .glass-card {
-            background: rgba(15, 23, 42, 0.72);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6);
-        }
+  <!-- GSAP & Canvas Confetti via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-        /* Кнопки с объемным эффектом */
-        .btn-primary {
-            background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
-            box-shadow: 0 8px 24px -6px rgba(6, 182, 212, 0.45);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.6);
-        }
-        .btn-primary:active:not(:disabled) {
-            transform: translateY(1px);
-        }
+  <!-- Three.js ESM Import Map -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
 
-        .btn-rose {
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-            box-shadow: 0 8px 24px -6px rgba(244, 63, 94, 0.45);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-rose:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 28px -6px rgba(244, 63, 94, 0.6);
-        }
+  <style>
+    :root {
+      --bg-obsidian: #07090F;
+      --bg-panel: rgba(12, 16, 26, 0.88);
+      --emerald-deep: #0A3D28;
+      --emerald-bright: #126A46;
+      --velvet-red: #7A0E1B;
+      --velvet-red-bright: #B0172A;
+      --gold-main: #D4AF37;
+      --gold-light: #FCE08B;
+      --gold-dark: #8F6B1F;
+      --text-main: #F8F5EC;
+      --text-muted: #9AA4B2;
+      --border-gold: rgba(212, 175, 55, 0.35);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
 
-        /* Игровая клетка */
-        .board-cell {
-            aspect-ratio: 1 / 1;
-            background: rgba(30, 41, 59, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            transition: all 0.2s ease;
-            position: relative;
-        }
-        .board-cell:hover:not(:disabled) {
-            background: rgba(51, 65, 85, 0.7);
-            border-color: rgba(148, 163, 184, 0.35);
-            transform: scale(1.02);
-        }
-        .board-cell:active:not(:disabled) {
-            transform: scale(0.97);
-        }
-        .board-cell.win-x {
-            background: rgba(6, 182, 212, 0.22);
-            border-color: rgba(34, 211, 238, 0.8);
-            box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
-        }
-        .board-cell.win-o {
-            background: rgba(244, 63, 94, 0.22);
-            border-color: rgba(251, 113, 133, 0.8);
-            box-shadow: 0 0 25px rgba(244, 63, 94, 0.35);
-        }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
 
-        /* Анимация прорисовки X и O */
-        @keyframes drawStroke {
-            from { stroke-dashoffset: 200; }
-            to { stroke-dashoffset: 0; }
-        }
-        .animate-draw {
-            stroke-dasharray: 200;
-            stroke-dashoffset: 0;
-            animation: drawStroke 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      background: radial-gradient(circle at 50% 25%, #161018 0%, #07090F 70%);
+      color: var(--text-main);
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-        /* Анимация всплывающей эмоции */
-        @keyframes floatEmoji {
-            0% { transform: translateY(10px) scale(0.6); opacity: 0; }
-            20% { transform: translateY(0) scale(1.15); opacity: 1; }
-            80% { transform: translateY(-24px) scale(1); opacity: 1; }
-            100% { transform: translateY(-42px) scale(0.85); opacity: 0; }
-        }
-        .emoji-pop {
-            animation: floatEmoji 1.6s ease-out forwards;
-        }
+    /* Portrait Mobile-First Shell (100vw x 100dvh on mobile, 9:16 VIP frame on desktop) */
+    #app-shell {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      max-width: 100vw;
+      max-height: 100dvh;
+      background: linear-gradient(180deg, #090C14 0%, #06090F 50%, #0B0E17 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+    }
 
-        /* Пульсирующий индикатор сети */
-        @keyframes pulseRing {
-            0% { transform: scale(0.8); opacity: 0.8; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
-        .pulse-dot::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 9999px;
-            background: inherit;
-            animation: pulseRing 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-    </style>
+    @media (min-width: 520px) and (min-height: 640px) {
+      #app-shell {
+        width: min(440px, 54dvh);
+        height: min(94dvh, 880px);
+        border-radius: 28px;
+        border: 1.5px solid rgba(212, 175, 55, 0.45);
+        box-shadow:
+          0 25px 80px rgba(0, 0, 0, 0.85),
+          0 0 40px rgba(212, 175, 55, 0.14),
+          inset 0 0 24px rgba(212, 175, 55, 0.06);
+      }
+    }
+
+    /* ==================== PRELOADER / SPLASH SCREEN ==================== */
+    #preloader {
+      position: absolute;
+      inset: 0;
+      z-index: 999;
+      background: radial-gradient(circle at 50% 42%, #1A1410 0%, #07090F 72%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .vip-frame {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      padding: 32px 22px;
+      border-radius: 22px;
+      background: linear-gradient(160deg, rgba(20, 24, 36, 0.92), rgba(7, 9, 15, 0.96));
+      border: 1px solid rgba(212, 175, 55, 0.5);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(212, 175, 55, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .vip-frame::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 17px;
+      border: 1px solid rgba(252, 224, 139, 0.18);
+      pointer-events: none;
+    }
+
+    .vip-crest {
+      width: 68px;
+      height: 68px;
+      filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.5));
+    }
+
+    .gold-shimmer-title {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: clamp(24px, 6.2vw, 31px);
+      line-height: 1.18;
+      letter-spacing: 0.04em;
+      background: linear-gradient(110deg, #8F6B1F 0%, #D4AF37 22%, #FFF3C4 48%, #D4AF37 72%, #8F6B1F 100%);
+      background-size: 220% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: goldShimmer 2.8s linear infinite;
+      text-shadow: 0 2px 18px rgba(212, 175, 55, 0.25);
+    }
+
+    @keyframes goldShimmer {
+      0% { background-position: 0% center; }
+      100% { background-position: 220% center; }
+    }
+
+    .vip-subtitle {
+      font-size: 11px;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      opacity: 0.85;
+      font-weight: 600;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 1px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #8F6B1F, #D4AF37, #FCE08B);
+      box-shadow: 0 0 12px rgba(252, 224, 139, 0.7);
+      transition: width 0.16s ease-out;
+    }
+
+    .progress-meta {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #enter-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 14px;
+      border: 1px solid #FCE08B;
+      background: linear-gradient(180deg, #FCE08B 0%, #D4AF37 50%, #9E751F 100%);
+      color: #161006;
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      box-shadow: 0 8px 26px rgba(212, 175, 55, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px) scale(0.96);
+    }
+
+    #enter-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ==================== TOP CASINO HUD ==================== */
+    .hud-bar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 7px 10px 6px;
+      background: linear-gradient(180deg, rgba(16, 20, 32, 0.96) 0%, rgba(9, 12, 20, 0.92) 100%);
+      border-bottom: 1px solid var(--border-gold);
+      z-index: 20;
+    }
+
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #FCE08B, #9A721E);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #120D05;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 12px;
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
+      flex-shrink: 0;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 99px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 4px 7px;
+      border-radius: 99px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(180deg, #D4AF37, #976F1C);
+      color: #0D0A04;
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22C55E;
+      box-shadow: 0 0 8px #22C55E;
+      animation: pulseLive 1.4s infinite;
+    }
+
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .balance-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(180deg, rgba(10, 61, 40, 0.85), rgba(6, 36, 24, 0.95));
+      border: 1px solid rgba(212, 175, 55, 0.55);
+      border-radius: 99px;
+      padding: 4px 8px 4px 9px;
+      box-shadow: inset 0 1px 4px rgba(252, 224, 139, 0.15);
+    }
+
+    .balance-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      font-size: 12.5px;
+      color: var(--gold-light);
+      letter-spacing: -0.02em;
+    }
+
+    .topup-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(180deg, #FCE08B, #C69528);
+      color: #161006;
+      font-weight: 900;
+      font-size: 13px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      border: 1px solid rgba(212, 175, 55, 0.32);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.1s ease;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    .icon-btn.muted {
+      color: #6B7280;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    /* ==================== 3D VIEWPORT & LIVE TRACKER ==================== */
+    .viewport-section {
+      flex: 0 0 auto;
+      position: relative;
+      width: 100%;
+      padding: 6px 8px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stage-wrapper {
+      position: relative;
+      width: 100%;
+      height: clamp(148px, 25.5dvh, 224px);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid rgba(212, 175, 55, 0.5);
+      background: #05080F;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.6);
+    }
+
+    #three-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .stage-overlay-top {
+      position: absolute;
+      top: 6px;
+      left: 7px;
+      right: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .race-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(7, 9, 15, 0.78);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 99px;
+      padding: 3px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--gold-light);
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-pills {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(7, 9, 15, 0.72);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+      padding: 2px 6px;
+    }
+
+    .history-label {
+      font-size: 8.5px;
+      color: var(--text-muted);
+      margin-right: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .hist-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      font-size: 9px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Countdown Center Overlay */
+    #countdown-banner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0;
+    }
+
+    .countdown-text {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 46px;
+      color: #FCE08B;
+      text-shadow: 0 0 24px rgba(212, 175, 55, 0.95), 0 4px 12px rgba(0, 0, 0, 0.9);
+      letter-spacing: 0.06em;
+    }
+
+    /* Live Progress Tracker Strip */
+    .live-tracker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(12, 16, 26, 0.9);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 10px;
+      padding: 4px 8px;
+    }
+
+    .tracker-tag {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--gold-main);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    .tracker-rail {
+      position: relative;
+      flex: 1;
+      height: 16px;
+      background: linear-gradient(90deg, rgba(10, 61, 40, 0.7), rgba(18, 106, 70, 0.85));
+      border-radius: 99px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      overflow: hidden;
+    }
+
+    .tracker-rail::after {
+      content: '';
+      position: absolute;
+      right: 4px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: repeating-linear-gradient(0deg, #fff 0 3px, #111 3px 6px);
+      opacity: 0.9;
+    }
+
+    .tracker-marker {
+      position: absolute;
+      top: 50%;
+      left: 2%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      font-family: 'JetBrains Mono', monospace;
+      transition: left 0.08s linear;
+    }
+
+    .leaders-mini {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .leader-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Online Live Feed Ticker */
+    .online-ticker {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 3px 9px;
+      background: linear-gradient(90deg, rgba(10, 61, 40, 0.5), rgba(122, 14, 27, 0.35));
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 8px;
+      font-size: 10px;
+      color: #E5E7EB;
+    }
+
+    .online-ticker.visible {
+      display: flex;
+    }
+
+    .ticker-msg {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      font-size: 10px;
+    }
+
+    .ticker-players {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 10px;
+      color: #4ADE80;
+      flex-shrink: 0;
+    }
+
+    /* ==================== HORSE SELECTION GRID (6 PARTICIPANTS) ==================== */
+    .horses-section {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 3px 8px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .horse-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(18, 24, 38, 0.92), rgba(10, 14, 22, 0.96));
+      border: 1px solid rgba(212, 175, 55, 0.22);
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.1s ease;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .horse-card:active {
+      transform: scale(0.97);
+    }
+
+    .horse-card.selected {
+      border-color: var(--gold-light);
+      background: linear-gradient(145deg, rgba(16, 52, 36, 0.92), rgba(10, 22, 18, 0.96));
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.3), inset 0 0 12px rgba(212, 175, 55, 0.12);
+    }
+
+    .horse-card.has-bet {
+      border-color: rgba(252, 224, 139, 0.65);
+    }
+
+    .silk-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+      border: 1.5px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+      flex-shrink: 0;
+    }
+
+    .horse-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .horse-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .horse-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .form-bar-bg {
+      flex: 1;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .form-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #D4AF37, #FCE08B);
+    }
+
+    .horse-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .odds-led {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      font-size: 12px;
+      color: #FCE08B;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      padding: 2px 5px;
+      border-radius: 6px;
+      text-shadow: 0 0 8px rgba(252, 224, 139, 0.45);
+    }
+
+    .bet-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #07130D;
+      background: linear-gradient(180deg, #4ADE80, #16A34A);
+      padding: 1px 5px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .bet-badge.active {
+      display: inline-block;
+    }
+
+    /* ==================== BETTING & CHIPS PANEL ==================== */
+    .betting-panel {
+      flex: 0 0 auto;
+      padding: 6px 8px 8px;
+      background: linear-gradient(180deg, rgba(14, 18, 28, 0.94) 0%, rgba(8, 10, 16, 0.98) 100%);
+      border-top: 1px solid var(--border-gold);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Bet Type Tabs */
+    .bet-type-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid rgba(212, 175, 55, 0.22);
+    }
+
+    .bet-tab {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 5px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .bet-tab.active {
+      background: linear-gradient(180deg, #7A0E1B, #520811);
+      color: var(--gold-light);
+      border: 1px solid rgba(212, 175, 55, 0.55);
+      box-shadow: 0 2px 10px rgba(122, 14, 27, 0.55);
+    }
+
+    /* Casino Chips Row */
+    .chips-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+    }
+
+    .chip-btn {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2.5px dashed rgba(255, 255, 255, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 10.5px;
+      color: #fff;
+      cursor: pointer;
+      box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.65),
+        inset 0 0 0 3px rgba(0, 0, 0, 0.28),
+        inset 0 2px 4px rgba(255, 255, 255, 0.35);
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+      flex-shrink: 0;
+    }
+
+    .chip-btn::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      pointer-events: none;
+    }
+
+    .chip-btn.selected {
+      transform: translateY(-4px) scale(1.08);
+      box-shadow:
+        0 8px 16px rgba(212, 175, 55, 0.55),
+        0 0 0 2px #FCE08B,
+        inset 0 0 0 3px rgba(0, 0, 0, 0.25);
+    }
+
+    .chip-btn:active {
+      transform: scale(0.92);
+    }
+
+    .chip-10 { background: radial-gradient(circle at 35% 30%, #2563EB, #1E3A8A); }
+    .chip-50 { background: radial-gradient(circle at 35% 30%, #DC2626, #7F1D1D); }
+    .chip-100 { background: radial-gradient(circle at 35% 30%, #16A34A, #064E3B); }
+    .chip-500 { background: radial-gradient(circle at 35% 30%, #9333EA, #4C1D95); }
+    .chip-1000 { background: radial-gradient(circle at 35% 30%, #D4AF37, #785513); color: #161004; border-color: #FFF3C4; }
+    .chip-max { background: radial-gradient(circle at 35% 30%, #1F2937, #030712); color: #FCE08B; border-color: #D4AF37; }
+
+    /* Quick Modifiers + Summary */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .q-btn {
+      padding: 5px 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(212, 175, 55, 0.28);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .q-btn:active {
+      transform: scale(0.94);
+      background: rgba(212, 175, 55, 0.2);
+    }
+
+    .bet-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 10.5px;
+    }
+
+    .sum-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.15;
+    }
+
+    .sum-label {
+      font-size: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .sum-val {
+      font-weight: 800;
+      color: var(--gold-light);
+    }
+
+    .sum-val.win {
+      color: #4ADE80;
+    }
+
+    /* Main CTA Race Button */
+    #start-race-btn {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 13px;
+      border: 1px solid #FCE08B;
+      background: linear-gradient(180deg, #FCE08B 0%, #D4AF37 48%, #99701B 100%);
+      color: #161004;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 14.5px;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      box-shadow:
+        0 6px 20px rgba(212, 175, 55, 0.42),
+        inset 0 1px 1px rgba(255, 255, 255, 0.75);
+      transition: transform 0.12s ease, filter 0.2s ease;
+    }
+
+    #start-race-btn:active:not(:disabled) {
+      transform: scale(0.975);
+    }
+
+    #start-race-btn:disabled {
+      filter: grayscale(0.55) brightness(0.75);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* ==================== MODALS & TOASTS ==================== */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 80;
+      background: rgba(4, 6, 12, 0.84);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 350px;
+      background: linear-gradient(160deg, rgba(20, 25, 38, 0.98), rgba(8, 11, 18, 0.99));
+      border: 1.5px solid rgba(212, 175, 55, 0.55);
+      border-radius: 20px;
+      padding: 18px 16px;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--gold-light);
+      letter-spacing: 0.06em;
+    }
+
+    .podium-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .podium-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+    }
+
+    .podium-row.first {
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.24), rgba(212, 175, 55, 0.06));
+      border-color: rgba(252, 224, 139, 0.55);
+    }
+
+    .podium-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .win-banner {
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(10, 61, 40, 0.55);
+      border: 1px solid rgba(74, 222, 128, 0.45);
+    }
+
+    .win-banner.loss {
+      background: rgba(122, 14, 27, 0.45);
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+
+    .win-amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 800;
+      color: #4ADE80;
+      text-shadow: 0 0 16px rgba(74, 222, 128, 0.55);
+    }
+
+    .win-banner.loss .win-amount {
+      color: #F87171;
+      text-shadow: none;
+      font-size: 18px;
+    }
+
+    .modal-btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 11px;
+      border: 1px solid #FCE08B;
+      background: linear-gradient(180deg, #FCE08B, #C59528);
+      color: #161004;
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+    }
+
+    .lb-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 210px;
+      overflow: hidden;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 9px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+    }
+
+    .lb-row.me {
+      border: 1px solid var(--gold-main);
+      background: rgba(212, 175, 55, 0.14);
+    }
+
+    .uid-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.45);
+      padding: 6px 8px;
+      border-radius: 8px;
+      word-break: break-all;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nick-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      outline: none;
+    }
+
+    #toast-msg {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translate(-50%, -12px);
+      z-index: 95;
+      background: rgba(12, 16, 26, 0.96);
+      border: 1px solid var(--gold-main);
+      color: var(--gold-light);
+      padding: 7px 14px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+  </style>
 </head>
-<body class="flex flex-col items-center justify-center p-3 sm:p-6">
+<body>
+  <div id="app-shell">
+    <!-- ==================== 1. LUXURY PRELOADER ==================== -->
+    <div id="preloader">
+      <div class="vip-frame">
+        <svg class="vip-crest" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="crestGold" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FCE08B"/>
+              <stop offset="50%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#8F6B1F"/>
+            </linearGradient>
+          </defs>
+          <circle cx="40" cy="40" r="36" stroke="url(#crestGold)" stroke-width="2" stroke-dasharray="4 3"/>
+          <path d="M18 52L24 28L34 38L40 20L46 38L56 28L62 52H18Z" fill="url(#crestGold)" stroke="#FFF3C4" stroke-width="1.4" stroke-linejoin="round"/>
+          <rect x="20" y="55" width="40" height="5" rx="2.5" fill="url(#crestGold)"/>
+        </svg>
+        <div class="vip-subtitle">VIP ROYAL TURF CLUB</div>
+        <div class="gold-shimmer-title">Все лучшее от NVR</div>
+        <div class="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="loader-bar"></div>
+          </div>
+          <div class="progress-meta">
+            <span id="loader-status">Инициализация 3D-ипподрома...</span>
+            <span id="loader-pct">0%</span>
+          </div>
+        </div>
+        <button id="enter-btn" type="button">ВОЙТИ В ЗАЛ</button>
+      </div>
+    </div>
 
-    <!-- Контейнер для уведомлений (вместо alert) -->
-    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-[92%] max-w-md pointer-events-none"></div>
+    <!-- ==================== 2. TOP CASINO HUD ==================== -->
+    <header class="hud-bar">
+      <div class="hud-brand">
+        <div class="brand-logo">NVR</div>
+        <div class="mode-switch">
+          <button class="mode-btn active" id="btn-mode-solo" type="button">SOLO</button>
+          <button class="mode-btn" id="btn-mode-online" type="button">
+            <span class="live-dot"></span>ONLINE
+          </button>
+        </div>
+      </div>
 
-    <!-- Главная обёртка приложения -->
-    <main class="w-full max-w-md mx-auto flex flex-col gap-4">
+      <div class="hud-right">
+        <div class="balance-pill">
+          <span class="balance-val" id="balance-display">$10,000</span>
+          <button class="topup-btn" id="topup-btn" type="button" title="Пополнить баланс">+</button>
+        </div>
 
-        <!-- Шапка приложения -->
-        <header class="flex items-center justify-between px-1">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center shadow-lg">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 5L11 11M11 5L5 11" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
-                        <circle cx="16.5" cy="16.5" r="3.5" stroke="#fb7185" stroke-width="2.5"/>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-lg font-extrabold tracking-tight leading-tight text-white">Крестики-нолики</h1>
-                    <p class="text-xs text-slate-400 font-medium">Локальная сеть Wi-Fi • P2P</p>
-                </div>
-            </div>
+        <button class="icon-btn" id="lb-btn" type="button" title="Онлайн Рейтинг и Профиль">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+          </svg>
+        </button>
 
-            <div class="flex items-center gap-2">
-                <!-- Переключатель звука -->
-                <button id="sound-toggle" type="button" title="Включить/выключить звук"
-                    class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70 text-slate-300 hover:text-white hover:bg-slate-700/80 transition">
-                    <svg id="sound-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"/>
-                    </svg>
-                    <svg id="sound-icon-off" class="w-5 h-5 hidden text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M23 9l-6 6M17 9l6 6"/>
-                    </svg>
-                </button>
-            </div>
-        </header>
+        <button class="icon-btn" id="sound-btn" type="button" title="Звук">
+          <svg id="sound-icon-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <svg id="sound-icon-off" style="display:none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        </button>
 
-        <!-- ==================== ЭКРАН 1: ЛОББИ И ПОДКЛЮЧЕНИЕ ==================== -->
-        <section id="lobby-screen" class="glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-5">
-            
-            <!-- Переключатель режимов сети -->
-            <div class="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-                <button data-tab="wifi" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-800 text-cyan-400 shadow">
-                    Wi-Fi Ключ
-                </button>
-                <button data-tab="offline" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200">
-                    Офлайн LAN
-                </button>
-                <button data-tab="local" class="tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200">
-                    1 Экран
-                </button>
-            </div>
+        <button class="icon-btn" id="fullscreen-btn" type="button" title="На весь экран">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </button>
+      </div>
+    </header>
 
-            <!-- ВКЛАДКА 1: WI-FI ПО КОРОТКОМУ КЛЮЧУ (PeerJS WebRTC) -->
-            <div id="tab-wifi" class="flex flex-col gap-4">
-                <div class="rounded-2xl bg-cyan-500/10 border border-cyan-500/20 p-3.5 text-xs text-cyan-200/90 leading-relaxed">
-                    <strong class="text-cyan-300">Быстрое подключение по Wi-Fi:</strong> Хост создаёт комнату и передаёт короткий ключ другу. Данные игры идут напрямую между устройствами (P2P).
-                </div>
+    <!-- ==================== 3. HORIZONTAL 3D LIVE STAGE ==================== -->
+    <section class="viewport-section">
+      <div class="stage-wrapper" id="stage-wrapper">
+        <canvas id="three-canvas"></canvas>
 
-                <!-- Блок Хоста -->
-                <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold text-white">Создать игру (Хост)</span>
-                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">Играет за X</span>
-                    </div>
+        <div class="stage-overlay-top">
+          <div class="race-status-badge" id="race-status-badge">ЗАБЕГ #1 • СТАВКИ</div>
+          <div class="history-pills" id="history-pills">
+            <span class="history-label">ИСТ</span>
+          </div>
+        </div>
 
-                    <button id="btn-create-wifi" type="button" class="btn-primary w-full py-3.5 px-4 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
-                        </svg>
-                        <span>Создать комнату и получить ключ</span>
-                    </button>
+        <div id="countdown-banner">
+          <div class="countdown-text" id="countdown-text">3</div>
+        </div>
+      </div>
 
-                    <!-- Отображение ключа хоста -->
-                    <div id="wifi-host-box" class="hidden flex-col gap-2.5 pt-1">
-                        <div class="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-950/90 border border-cyan-500/40">
-                            <div>
-                                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Ключ приглашения</div>
-                                <div id="wifi-host-key" class="font-mono-key text-2xl font-bold tracking-widest text-cyan-300">------</div>
-                            </div>
-                            <button id="btn-copy-wifi-key" type="button" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                </svg>
-                                Копировать
-                            </button>
-                        </div>
-                        <div class="flex items-center justify-between text-xs text-slate-400">
-                            <span class="flex items-center gap-2">
-                                <span class="relative w-2.5 h-2.5 rounded-full bg-amber-400 pulse-dot"></span>
-                                <span id="wifi-host-status">Ожидание подключения игрока...</span>
-                            </span>
-                            <button id="btn-cancel-wifi-host" type="button" class="text-rose-400 hover:text-rose-300 font-medium">Отмена</button>
-                        </div>
-                    </div>
-                </div>
+      <!-- Live Horizontal Progress Tracker -->
+      <div class="live-tracker">
+        <span class="tracker-tag">START</span>
+        <div class="tracker-rail" id="tracker-rail"></div>
+        <span class="tracker-tag">FIN</span>
+        <div class="leaders-mini" id="leaders-mini">
+          <span class="leader-chip">1:-</span>
+          <span class="leader-chip">2:-</span>
+          <span class="leader-chip">3:-</span>
+        </div>
+      </div>
 
-                <!-- Разделитель -->
-                <div class="flex items-center gap-3">
-                    <div class="h-px flex-1 bg-slate-800"></div>
-                    <span class="text-xs font-semibold text-slate-500 uppercase">или</span>
-                    <div class="h-px flex-1 bg-slate-800"></div>
-                </div>
+      <!-- Online Live Activity Strip -->
+      <div class="online-ticker" id="online-ticker">
+        <span class="ticker-msg" id="ticker-msg">VIP Онлайн-зал подключен • Общий раунд синхронизирован</span>
+        <span class="ticker-players"><span class="live-dot"></span><span id="online-count">1</span></span>
+      </div>
+    </section>
 
-                <!-- Блок Гостя -->
-                <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold text-white">Подключиться к хосту</span>
-                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300">Играет за O</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <input id="wifi-join-input" type="text" maxlength="6" placeholder="КЛЮЧ (напр. K7M2P9)"
-                            class="font-mono-key uppercase flex-1 px-3.5 py-3 rounded-xl bg-slate-950/90 border border-slate-700 text-white placeholder-slate-500 text-sm tracking-widest focus:outline-none focus:border-rose-500 transition">
-                        <button id="btn-join-wifi" type="button" class="btn-rose px-5 py-3 rounded-xl font-bold text-white text-sm whitespace-nowrap">
-                            Войти
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <!-- ==================== 4. 6 HORSES SELECTION GRID ==================== -->
+    <section class="horses-section" id="horses-grid"></section>
 
-            <!-- ВКЛАДКА 2: ОФЛАЙН LAN (ПРЯМОЙ WEBRTC БЕЗ ИНТЕРНЕТА) -->
-            <div id="tab-offline" class="hidden flex-col gap-4">
-                <div class="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 text-xs text-emerald-200/90 leading-relaxed">
-                    <strong class="text-emerald-300">100% локальная сеть (даже без интернета):</strong> Устройства на одном Wi-Fi роутере обмениваются зашифрованным P2P-ключом напрямую без серверов.
-                </div>
+    <!-- ==================== 5. BETTING & CASINO CHIPS PANEL ==================== -->
+    <section class="betting-panel">
+      <div class="bet-type-tabs" id="bet-type-tabs">
+        <button class="bet-tab active" data-type="win" type="button">ПОБЕДА (1-е)</button>
+        <button class="bet-tab" data-type="place" type="button">ПРИЗЕР (Топ-2)</button>
+        <button class="bet-tab" data-type="show" type="button">ШОУ (Топ-3)</button>
+      </div>
 
-                <!-- Выбор роли в Офлайн LAN -->
-                <div class="grid grid-cols-2 gap-2.5">
-                    <button id="btn-offline-host-mode" type="button" class="py-3 px-3 rounded-xl bg-slate-800 border border-cyan-500/50 text-cyan-300 font-bold text-xs sm:text-sm transition">
-                        1. Я Хост (Создать)
-                    </button>
-                    <button id="btn-offline-guest-mode" type="button" class="py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-rose-500/50 font-bold text-xs sm:text-sm transition">
-                        2. Я Игрок (Войти)
-                    </button>
-                </div>
+      <div class="chips-row" id="chips-row">
+        <button class="chip-btn chip-10" data-val="10" type="button">$10</button>
+        <button class="chip-btn chip-50" data-val="50" type="button">$50</button>
+        <button class="chip-btn chip-100 selected" data-val="100" type="button">$100</button>
+        <button class="chip-btn chip-500" data-val="500" type="button">$500</button>
+        <button class="chip-btn chip-1000" data-val="1000" type="button">$1K</button>
+        <button class="chip-btn chip-max" data-val="max" type="button">MAX</button>
+      </div>
 
-                <!-- Панель Офлайн Хоста -->
-                <div id="offline-host-panel" class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                    <button id="btn-gen-offer" type="button" class="btn-primary w-full py-3 rounded-xl font-bold text-white text-sm">
-                        Сгенерировать LAN-ключ приглашения
-                    </button>
+      <div class="controls-row">
+        <div class="quick-actions">
+          <button class="q-btn" id="btn-half" type="button">1/2</button>
+          <button class="q-btn" id="btn-double" type="button">×2</button>
+          <button class="q-btn" id="btn-clear" type="button">СБРОС</button>
+          <button class="q-btn" id="btn-rebet" type="button">ПОВТОР</button>
+        </div>
+        <div class="bet-summary">
+          <div class="sum-item">
+            <span class="sum-label">Ставка</span>
+            <span class="sum-val" id="total-bet-val">$0</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">До</span>
+            <span class="sum-val win" id="potential-win-val">$0</span>
+          </div>
+        </div>
+      </div>
 
-                    <div id="offline-offer-area" class="hidden flex-col gap-2">
-                        <label class="text-xs font-semibold text-cyan-300">Шаг 1. Отправьте этот ключ другу:</label>
-                        <div class="flex gap-2">
-                            <textarea id="offline-offer-text" readonly rows="2" class="font-mono-key text-[11px] flex-1 p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-cyan-200 resize-none focus:outline-none"></textarea>
-                            <button id="btn-copy-offer" type="button" class="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">Копир.</button>
-                        </div>
+      <button id="start-race-btn" type="button">НАЧАТЬ ЗАБЕГ</button>
+    </section>
 
-                        <label class="text-xs font-semibold text-amber-300 mt-1">Шаг 2. Вставьте ответный ключ от друга:</label>
-                        <textarea id="offline-answer-input" rows="2" placeholder="Вставьте ответный ключ сюда..." class="font-mono-key text-[11px] w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-cyan-500"></textarea>
-                        <button id="btn-accept-answer" type="button" class="btn-primary w-full py-3 rounded-xl font-bold text-white text-sm">
-                            Подключиться и начать игру
-                        </button>
-                    </div>
-                </div>
+    <!-- ==================== 6. RACE RESULT MODAL ==================== -->
+    <div class="modal-backdrop" id="result-modal">
+      <div class="modal-card">
+        <div class="modal-title" id="result-title">ФИНИШ ЗАБЕГА</div>
+        <div class="podium-list" id="podium-list"></div>
+        <div class="win-banner" id="win-banner">
+          <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#D1D5DB;margin-bottom:3px;" id="win-label">ВАШ ВЫИГРЫШ</div>
+          <div class="win-amount" id="win-amount-val">$0</div>
+        </div>
+        <button class="modal-btn" id="next-race-btn" type="button">СЛЕДУЮЩИЙ ЗАБЕГ</button>
+      </div>
+    </div>
 
-                <!-- Панель Офлайн Гостя -->
-                <div id="offline-guest-panel" class="hidden flex-col gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                    <label class="text-xs font-semibold text-rose-300">Шаг 1. Вставьте ключ приглашения от Хоста:</label>
-                    <textarea id="offline-offer-input" rows="2" placeholder="Вставьте ключ от Хоста..." class="font-mono-key text-[11px] w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-rose-500"></textarea>
-                    <button id="btn-gen-answer" type="button" class="btn-rose w-full py-3 rounded-xl font-bold text-white text-sm">
-                        Создать ответный ключ
-                    </button>
+    <!-- ==================== 7. ONLINE LEADERBOARD & PROFILE MODAL ==================== -->
+    <div class="modal-backdrop" id="lb-modal">
+      <div class="modal-card">
+        <div class="modal-title">VIP ОНЛАЙН ЗАЛ ($)</div>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="nickname-input" class="nick-input" maxlength="16" placeholder="Ваше имя в VIP-зале" />
+          <button class="q-btn" id="save-nick-btn" type="button" style="border-color:#D4AF37;color:#FCE08B;">OK</button>
+        </div>
+        <div class="uid-box" id="uid-display">ID: подключение...</div>
+        <div style="font-size:10px;color:#D4AF37;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Топ Игроков VIP-Клуба</div>
+        <div class="lb-list" id="lb-list"></div>
+        <button class="modal-btn" id="close-lb-btn" type="button">ЗАКРЫТЬ</button>
+      </div>
+    </div>
 
-                    <div id="offline-answer-area" class="hidden flex-col gap-2">
-                        <label class="text-xs font-semibold text-emerald-300">Шаг 2. Передайте этот ответный ключ Хосту:</label>
-                        <div class="flex gap-2">
-                            <textarea id="offline-answer-text" readonly rows="2" class="font-mono-key text-[11px] flex-1 p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 text-emerald-200 resize-none focus:outline-none"></textarea>
-                            <button id="btn-copy-answer" type="button" class="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">Копир.</button>
-                        </div>
-                        <p class="text-[11px] text-slate-400 flex items-center gap-2">
-                            <span class="relative w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-                            Ожидание подтверждения от Хоста...
-                        </p>
-                    </div>
-                </div>
-            </div>
+    <!-- Toast Notification -->
+    <div id="toast-msg"></div>
+  </div>
 
-            <!-- ВКЛАДКА 3: ЛОКАЛЬНАЯ ИГРА НА ОДНОМ ЭКРАНЕ -->
-            <div id="tab-local" class="hidden flex-col gap-3">
-                <div class="rounded-2xl bg-slate-800/50 border border-slate-700/60 p-3.5 text-xs text-slate-300 leading-relaxed">
-                    Быстрая игра без сети — вдвоём на одном устройстве или против умного бота.
-                </div>
-                <button id="btn-start-local-2p" type="button" class="btn-primary w-full py-3.5 rounded-xl font-bold text-white text-sm">
-                    Вдвоём на одном экране (X vs O)
-                </button>
-                <button id="btn-start-local-ai" type="button" class="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
-                    Играть против Бота
-                </button>
-            </div>
-        </section>
+  <!-- ==================== MAIN MODULE SCRIPT ==================== -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
-        <!-- ==================== ЭКРАН 2: ИГРОВОЕ ПОЛЕ ==================== -->
-        <section id="game-screen" class="hidden glass-card rounded-3xl p-5 sm:p-6 flex-col gap-4 relative">
-            
-            <!-- Плавающая зона для эмоций -->
-            <div id="emoji-overlay" class="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-20"></div>
+    /* =========================================================================
+     * 0. STRICT SCROLL & GESTURE LOCK + HELPERS
+     * ========================================================================= */
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('wheel', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('dblclick', (e) => e.preventDefault());
 
-            <!-- Верхняя строка статуса сети и кнопка выхода -->
-            <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
-                <div class="flex items-center gap-2">
-                    <span id="conn-dot" class="relative w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
-                    <span id="conn-label" class="text-xs font-semibold text-slate-300">Wi-Fi P2P подключено</span>
-                </div>
-                <button id="btn-leave-game" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-rose-500/20 hover:text-rose-300 border border-slate-700 text-xs font-semibold text-slate-300 transition">
-                    Выйти
-                </button>
-            </div>
+    function formatUSD(amount) {
+      const rounded = Math.round(amount);
+      return '$' + rounded.toLocaleString('en-US');
+    }
 
-            <!-- Счётчик раундов -->
-            <div class="grid grid-cols-3 gap-2.5">
-                <div id="score-card-x" class="rounded-2xl p-2.5 text-center bg-slate-900/70 border border-cyan-500/30 transition">
-                    <div id="label-player-x" class="text-[11px] font-semibold text-cyan-300 truncate">Хост (X)</div>
-                    <div id="score-x" class="text-xl font-extrabold text-white mt-0.5">0</div>
-                </div>
-                <div class="rounded-2xl p-2.5 text-center bg-slate-900/50 border border-slate-800">
-                    <div class="text-[11px] font-semibold text-slate-400">Ничьи</div>
-                    <div id="score-draw" class="text-xl font-extrabold text-slate-200 mt-0.5">0</div>
-                </div>
-                <div id="score-card-o" class="rounded-2xl p-2.5 text-center bg-slate-900/70 border border-rose-500/30 transition">
-                    <div id="label-player-o" class="text-[11px] font-semibold text-rose-300 truncate">Гость (O)</div>
-                    <div id="score-o" class="text-xl font-extrabold text-white mt-0.5">0</div>
-                </div>
-            </div>
+    // Deterministic PRNG (Mulberry32) for synchronized Online Mode races
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
 
-            <!-- Баннер текущего хода / результата -->
-            <div id="turn-banner" class="py-2.5 px-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center text-sm font-bold text-cyan-300 transition">
-                Ваш ход (X)
-            </div>
+    const HORSE_CATALOG = [
+      { id: 1, name: 'Черный Бриллиант', coat: 0x18181D, mane: 0x09090B, silk: '#DC2626', silkHex: 0xDC2626 },
+      { id: 2, name: 'Золотой Шторм',    coat: 0xB88435, mane: 0x3B2310, silk: '#2563EB', silkHex: 0x2563EB },
+      { id: 3, name: 'Алый Вихрь',       coat: 0x7A3319, mane: 0x261008, silk: '#16A34A', silkHex: 0x16A34A },
+      { id: 4, name: 'Изумрудная Тень',  coat: 0x52311E, mane: 0x170D08, silk: '#D97706', silkHex: 0xD97706 },
+      { id: 5, name: 'Королевский Гром', coat: 0x9CA3AF, mane: 0x4B5563, silk: '#9333EA', silkHex: 0x9333EA },
+      { id: 6, name: 'Белый Монарх',     coat: 0xECECE6, mane: 0xD1D5DB, silk: '#DB2777', silkHex: 0xDB2777 }
+    ];
 
-            <!-- Игровая сетка 3x3 -->
-            <div id="game-board" class="grid grid-cols-3 gap-3 w-full max-w-[330px] mx-auto my-1">
-                <!-- 9 клеток генерируются через JS -->
-            </div>
+    /* =========================================================================
+     * 1. SOUND ENGINE (WEB AUDIO API PROCEDURAL SYNTHESIZER)
+     * ========================================================================= */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.bgmGain = null;
+        this.sfxGain = null;
+        this.muted = false;
+        this.initialized = false;
+        this.bgmTimer = null;
+        this.bgmStep = 0;
 
-            <!-- Панель действий под полем -->
-            <div class="flex flex-col gap-3 pt-2">
-                <!-- Кнопка реванша / новой игры -->
-                <button id="btn-rematch" type="button" class="hidden btn-primary w-full py-3.5 rounded-xl font-bold text-white text-sm">
-                    Сыграть ещё раз
-                </button>
+        // Race continuous audio nodes
+        this.crowdSource = null;
+        this.crowdFilter = null;
+        this.crowdGain = null;
+        this.hoofTimer = null;
+        this.noiseBuffer = null;
+      }
 
-                <!-- Быстрые эмоции для сетевой игры -->
-                <div id="emoji-bar" class="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-                    <span class="text-[11px] font-semibold text-slate-400 pl-2">Реакция:</span>
-                    <div class="flex items-center gap-1.5">
-                        <button type="button" data-emoji="🔥" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🔥</button>
-                        <button type="button" data-emoji="👏" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">👏</button>
-                        <button type="button" data-emoji="😂" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">😂</button>
-                        <button type="button" data-emoji="🤔" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🤔</button>
-                        <button type="button" data-emoji="🤝" class="emoji-btn w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-lg transition active:scale-90">🤝</button>
-                    </div>
-                </div>
-            </div>
-        </section>
+      init() {
+        if (this.initialized) {
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+          return;
+        }
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+          this.masterGain = this.ctx.createGain();
+          this.masterGain.gain.value = 0.85;
+          this.masterGain.connect(this.ctx.destination);
 
-    </main>
+          this.bgmGain = this.ctx.createGain();
+          this.bgmGain.gain.value = 0.22;
+          this.bgmGain.connect(this.masterGain);
 
-    <script>
-        /**
-         * =====================================================================
-         * КРЕСТИКИ-НОЛИКИ ПО WI-FI (P2P WebRTC + PeerJS + Офлайн LAN)
-         * =====================================================================
-         * Архитектура:
-         * 1. SoundEngine — синтез звуков через Web Audio API (работает офлайн).
-         * 2. NetManager — единый слой сети для 3 режимов:
-         *    - 'wifi' (PeerJS WebRTC по короткому 6-значному ключу)
-         *    - 'offline' (прямой WebRTC DataChannel без серверов по LAN-ключу)
-         *    - 'local-2p' / 'local-ai' (игра на одном устройстве)
-         * 3. GameEngine — состояние поля 3x3, проверка побед, синхронизация ходов.
-         */
+          this.sfxGain = this.ctx.createGain();
+          this.sfxGain.gain.value = 0.85;
+          this.sfxGain.connect(this.masterGain);
 
-        // ===================== 1. ЗВУКОВОЙ ДВИЖОК =====================
-        const SoundEngine = {
-            ctx: null,
-            enabled: true,
-            init() {
-                if (!this.ctx) {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (AudioCtx) this.ctx = new AudioCtx();
-                }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume().catch(() => {});
-                }
-            },
-            playTone(freq, duration = 0.12, type = 'sine', vol = 0.12) {
-                if (!this.enabled) return;
-                try {
-                    this.init();
-                    if (!this.ctx) return;
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
-                } catch (e) { /* игнорируем ошибки автовоспроизведения */ }
-            },
-            moveX() { this.playTone(520, 0.11, 'triangle', 0.14); },
-            moveO() { this.playTone(390, 0.12, 'sine', 0.14); },
-            connect() {
-                this.playTone(440, 0.1, 'sine', 0.1);
-                setTimeout(() => this.playTone(660, 0.15, 'sine', 0.12), 100);
-            },
-            win() {
-                [523, 659, 784, 1046].forEach((f, i) => {
-                    setTimeout(() => this.playTone(f, 0.18, 'triangle', 0.12), i * 90);
-                });
-            },
-            draw() {
-                this.playTone(330, 0.15, 'sine', 0.1);
-                setTimeout(() => this.playTone(290, 0.22, 'sine', 0.1), 130);
-            }
+          // Pre-generate 2s white noise buffer for hooves, crowd, snare brushes
+          const bufferSize = this.ctx.sampleRate * 2;
+          this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const output = this.noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+          }
+
+          this.initialized = true;
+          this.startLoungeBGM();
+        } catch (err) {
+          console.warn('Web Audio unavailable:', err);
+        }
+      }
+
+      toggleMute() {
+        this.muted = !this.muted;
+        if (this.masterGain && this.ctx) {
+          const now = this.ctx.currentTime;
+          this.masterGain.gain.cancelScheduledValues(now);
+          this.masterGain.gain.setTargetAtTime(this.muted ? 0 : 0.85, now, 0.05);
+        }
+        return this.muted;
+      }
+
+      // Smooth night casino lounge chord progression
+      startLoungeBGM() {
+        if (!this.ctx || this.bgmTimer) return;
+        const chords = [
+          [261.63, 329.63, 392.00, 493.88, 587.33], // Cmaj9
+          [220.00, 261.63, 329.63, 392.00, 493.88], // Am9
+          [293.66, 349.23, 440.00, 523.25, 659.25], // Dm9
+          [196.00, 246.94, 349.23, 440.00, 659.25]  // G13
+        ];
+        const bassNotes = [130.81, 110.00, 146.83, 98.00];
+
+        const playStep = () => {
+          if (!this.ctx || this.ctx.state !== 'running') return;
+          const now = this.ctx.currentTime;
+          const chordIdx = Math.floor(this.bgmStep / 4) % chords.length;
+          const beat = this.bgmStep % 4;
+
+          // Soft Rhodes electric piano chord on beat 0
+          if (beat === 0) {
+            const notes = chords[chordIdx];
+            notes.forEach((freq, i) => {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, now + i * 0.03);
+              g.gain.setValueAtTime(0.0001, now + i * 0.03);
+              g.gain.linearRampToValueAtTime(0.055, now + i * 0.03 + 0.06);
+              g.gain.exponentialRampToValueAtTime(0.001, now + 2.3);
+              osc.connect(g);
+              g.connect(this.bgmGain);
+              osc.start(now + i * 0.03);
+              osc.stop(now + 2.4);
+            });
+          }
+
+          // Warm lounge bass on beat 0 and 2
+          if (beat === 0 || beat === 2) {
+            const bOsc = this.ctx.createOscillator();
+            const bGain = this.ctx.createGain();
+            bOsc.type = 'triangle';
+            const freq = beat === 0 ? bassNotes[chordIdx] : bassNotes[chordIdx] * 1.5;
+            bOsc.frequency.setValueAtTime(freq, now);
+            bGain.gain.setValueAtTime(0.001, now);
+            bGain.gain.linearRampToValueAtTime(0.14, now + 0.03);
+            bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+            bOsc.connect(bGain);
+            bGain.connect(this.bgmGain);
+            bOsc.start(now);
+            bOsc.stop(now + 0.95);
+          }
+
+          // Subtle brushed jazz hi-hat on every beat
+          if (this.noiseBuffer) {
+            const src = this.ctx.createBufferSource();
+            src.buffer = this.noiseBuffer;
+            const hp = this.ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 7500;
+            const hg = this.ctx.createGain();
+            hg.gain.setValueAtTime(beat % 2 === 1 ? 0.035 : 0.018, now);
+            hg.gain.exponentialRampToValueAtTime(0.0005, now + 0.07);
+            src.connect(hp);
+            hp.connect(hg);
+            hg.connect(this.bgmGain);
+            src.start(now);
+            src.stop(now + 0.08);
+          }
+
+          this.bgmStep++;
         };
 
-        // ===================== 2. УТИЛИТЫ UI =====================
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const styles = {
-                info: 'bg-slate-800/95 border-cyan-500/40 text-cyan-100',
-                success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100',
-                error: 'bg-rose-950/95 border-rose-500/50 text-rose-100',
-                warn: 'bg-amber-950/95 border-amber-500/50 text-amber-100'
-            };
-            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border text-xs sm:text-sm font-medium shadow-xl backdrop-blur-md transition-all duration-300 text-center ${styles[type] || styles.info}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-8px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3200);
+        this.bgmTimer = setInterval(playStep, 600);
+      }
+
+      playClick() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.exponentialRampToValueAtTime(340, now + 0.045);
+        g.gain.setValueAtTime(0.14, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(g);
+        g.connect(this.sfxGain);
+        osc.start(now);
+        osc.stop(now + 0.055);
+      }
+
+      // Authentic ceramic casino chip clink
+      playChip() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        const freqs = [2450, 3820, 5120];
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 120, now + idx * 0.006);
+          g.gain.setValueAtTime(0.11 / (idx + 1), now + idx * 0.006);
+          g.gain.exponentialRampToValueAtTime(0.0008, now + 0.075);
+          osc.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(now + idx * 0.006);
+          osc.stop(now + 0.08);
+        });
+      }
+
+      playCountdown(isGo = false) {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        if (!isGo) {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          g.gain.setValueAtTime(0.24, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else {
+          // Starting gate brass bell + metallic gate clank
+          [880, 1318.5, 1760, 2637].forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = i % 2 === 0 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(f, now);
+            g.gain.setValueAtTime(0.2 / (i + 1), now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+            osc.connect(g);
+            g.connect(this.sfxGain);
+            osc.start(now);
+            osc.stop(now + 0.9);
+          });
+          if (this.noiseBuffer) {
+            const src = this.ctx.createBufferSource();
+            src.buffer = this.noiseBuffer;
+            const bp = this.ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.frequency.value = 1200;
+            const ng = this.ctx.createGain();
+            ng.gain.setValueAtTime(0.35, now);
+            ng.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            src.connect(bp);
+            bp.connect(ng);
+            ng.connect(this.sfxGain);
+            src.start(now);
+            src.stop(now + 0.18);
+          }
+        }
+      }
+
+      startRaceAudio() {
+        if (!this.ctx || !this.noiseBuffer) return;
+        this.stopRaceAudio();
+        const now = this.ctx.currentTime;
+
+        // Crowd roar (bandpass filtered noise)
+        this.crowdSource = this.ctx.createBufferSource();
+        this.crowdSource.buffer = this.noiseBuffer;
+        this.crowdSource.loop = true;
+
+        this.crowdFilter = this.ctx.createBiquadFilter();
+        this.crowdFilter.type = 'bandpass';
+        this.crowdFilter.frequency.setValueAtTime(420, now);
+        this.crowdFilter.Q.value = 1.4;
+
+        this.crowdGain = this.ctx.createGain();
+        this.crowdGain.gain.setValueAtTime(0.001, now);
+        this.crowdGain.gain.linearRampToValueAtTime(0.09, now + 1.0);
+
+        this.crowdSource.connect(this.crowdFilter);
+        this.crowdFilter.connect(this.crowdGain);
+        this.crowdGain.connect(this.sfxGain);
+        this.crowdSource.start(now);
+
+        // Rhythmic hoofbeats
+        let hoofIdx = 0;
+        const triggerHoof = () => {
+          if (!this.ctx || !this.noiseBuffer || this.muted) return;
+          const t = this.ctx.currentTime;
+          const src = this.ctx.createBufferSource();
+          src.buffer = this.noiseBuffer;
+          const lp = this.ctx.createBiquadFilter();
+          lp.type = 'bandpass';
+          lp.frequency.value = 260 + (hoofIdx % 4) * 55;
+          lp.Q.value = 2.0;
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.16, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+          src.connect(lp);
+          lp.connect(g);
+          g.connect(this.sfxGain);
+          src.start(t);
+          src.stop(t + 0.07);
+          hoofIdx++;
+        };
+        this.hoofTimer = setInterval(triggerHoof, 115);
+      }
+
+      updateRaceAudio(progress) {
+        if (!this.ctx || !this.crowdFilter || !this.crowdGain) return;
+        const now = this.ctx.currentTime;
+        const excitement = Math.min(1, Math.max(0, progress));
+        this.crowdFilter.frequency.setTargetAtTime(420 + excitement * 780, now, 0.15);
+        this.crowdGain.gain.setTargetAtTime(0.08 + excitement * 0.22, now, 0.15);
+      }
+
+      stopRaceAudio() {
+        if (this.hoofTimer) {
+          clearInterval(this.hoofTimer);
+          this.hoofTimer = null;
+        }
+        if (this.crowdGain && this.ctx) {
+          const now = this.ctx.currentTime;
+          this.crowdGain.gain.setTargetAtTime(0.0001, now, 0.15);
+          const src = this.crowdSource;
+          setTimeout(() => {
+            try { if (src) src.stop(); } catch (_) {}
+          }, 450);
+          this.crowdSource = null;
+          this.crowdFilter = null;
+          this.crowdGain = null;
+        }
+      }
+
+      playWin() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        // Triumphant brass fanfare
+        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+        notes.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          const lp = this.ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.value = 2600;
+          const t = now + idx * 0.095;
+          osc.frequency.setValueAtTime(f, t);
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.16, t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+          osc.connect(lp);
+          lp.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + 0.7);
+        });
+        // Cascading coin chimes
+        for (let i = 0; i < 10; i++) {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          const t = now + 0.25 + i * 0.075;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(2800 + Math.random() * 1400, t);
+          g.gain.setValueAtTime(0.09, t);
+          g.gain.exponentialRampToValueAtTime(0.0008, t + 0.18);
+          osc.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + 0.2);
+        }
+      }
+
+      playLose() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        [293.66, 349.23, 415.30].forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'triangle';
+          const t = now + idx * 0.06;
+          osc.frequency.setValueAtTime(f, t);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.94, t + 0.55);
+          g.gain.setValueAtTime(0.11, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+          osc.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(t);
+          osc.stop(t + 0.65);
+        });
+      }
+    }
+
+    /* =========================================================================
+     * 2. PROCEDURAL CANVAS TEXTURE FACTORY
+     * ========================================================================= */
+    class TextureFactory {
+      static createTurfTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // Mowed luxury emerald stripes
+        for (let i = 0; i < 8; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#0E5134' : '#12613F';
+          ctx.fillRect(i * 64, 0, 64, 512);
         }
 
-        // Надёжное копирование в буфер обмена (работает даже внутри iframe)
-        function copyToClipboard(text) {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.focus();
-                ta.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(ta);
-                if (ok) {
-                    showToast('Ключ скопирован в буфер обмена!', 'success');
-                } else {
-                    showToast('Выделите и скопируйте ключ вручную', 'warn');
-                }
-            } catch (e) {
-                showToast('Не удалось скопировать автоматически', 'error');
-            }
+        // Subtle organic grass blades noise
+        for (let i = 0; i < 6000; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.08)';
+          ctx.fillRect(x, y, 2, 4);
         }
 
-        function generateShortKey(length = 6) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+        // Crisp white lane markings (6 lanes)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([18, 18]);
+        for (let lane = 1; lane < 6; lane++) {
+          const y = (lane / 6) * 512;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(512, y);
+          ctx.stroke();
         }
 
-        // Кодирование/декодирование SDP для Офлайн LAN-ключа
-        function encodeSDP(desc) {
-            const minimal = { t: desc.type === 'offer' ? 0 : 1, s: desc.sdp };
-            return btoa(unescape(encodeURIComponent(JSON.stringify(minimal))));
-        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.repeat.set(16, 1);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
 
-        function decodeSDP(str) {
-            const cleaned = str.trim().replace(/\s+/g, '');
-            const obj = JSON.parse(decodeURIComponent(escape(atob(cleaned))));
-            return { type: obj.t === 0 ? 'offer' : 'answer', sdp: obj.s };
+      static createCheckerTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        const size = 32;
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x++) {
+            ctx.fillStyle = (x + y) % 2 === 0 ? '#FFFFFF' : '#0B0D12';
+            ctx.fillRect(x * size, y * size, size, size);
+          }
         }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
 
-        // ===================== 3. СОСТОЯНИЕ ИГРЫ =====================
-        const WIN_LINES = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
+      static createLedBoardTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+
+        const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+        grad.addColorStop(0, '#07090F');
+        grad.addColorStop(0.5, '#1B1408');
+        grad.addColorStop(1, '#07090F');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 128);
+
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(4, 4, 1016, 120);
+
+        ctx.font = '900 50px Cinzel, serif';
+        ctx.fillStyle = '#FCE08B';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★ NVR CASINO  •  VIP TURF CLUB  •  $ USD ★', 512, 66);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.repeat.set(5, 1);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      static createSaddleTexture(number, silkHexColor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = silkHexColor;
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.strokeStyle = '#FCE08B';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(6, 6, 116, 116);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 72px Montserrat, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(number), 64, 68);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      static createDistanceSignTexture(label) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0A3D28';
+        ctx.fillRect(0, 0, 128, 64);
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(3, 3, 122, 58);
+        ctx.fillStyle = '#FCE08B';
+        ctx.font = '800 30px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, 64, 34);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+    }
+
+    /* =========================================================================
+     * 3. ARTICULATED 3D HORSE & JOCKEY MODEL
+     * ========================================================================= */
+    class HorseModel {
+      constructor(config) {
+        this.config = config;
+        this.root = new THREE.Group();
+        this.bodyGroup = new THREE.Group();
+        this.root.add(this.bodyGroup);
+
+        const coatMat = new THREE.MeshStandardMaterial({
+          color: config.coat,
+          roughness: 0.45,
+          metalness: 0.08
+        });
+        const maneMat = new THREE.MeshStandardMaterial({
+          color: config.mane,
+          roughness: 0.8
+        });
+        const hoofMat = new THREE.MeshStandardMaterial({
+          color: 0x151517,
+          roughness: 0.55,
+          metalness: 0.2
+        });
+        const silkMat = new THREE.MeshStandardMaterial({
+          color: config.silkHex,
+          roughness: 0.35,
+          metalness: 0.1
+        });
+        const whiteMat = new THREE.MeshStandardMaterial({ color: 0xF3F4F6, roughness: 0.5 });
+        const leatherMat = new THREE.MeshStandardMaterial({ color: 0x2B180E, roughness: 0.65 });
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xE5B594, roughness: 0.6 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, roughness: 0.25, metalness: 0.85 });
+
+        // --- Torso (Barrel, Chest, Hindquarters) ---
+        const barrel = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.15, 8, 14), coatMat);
+        barrel.rotation.z = Math.PI / 2;
+        barrel.position.set(0, 1.38, 0);
+        barrel.castShadow = true;
+        this.bodyGroup.add(barrel);
+
+        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.44, 12, 12), coatMat);
+        chest.position.set(0.56, 1.41, 0);
+        chest.scale.set(1.05, 1.0, 0.92);
+        chest.castShadow = true;
+        this.bodyGroup.add(chest);
+
+        const rump = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), coatMat);
+        rump.position.set(-0.58, 1.40, 0);
+        rump.scale.set(1.1, 1.0, 0.94);
+        rump.castShadow = true;
+        this.bodyGroup.add(rump);
+
+        // --- Neck & Head Pivot ---
+        this.neckPivot = new THREE.Group();
+        this.neckPivot.position.set(0.75, 1.56, 0);
+        this.bodyGroup.add(this.neckPivot);
+
+        const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, 0.68, 8, 10), coatMat);
+        neck.position.set(0.26, 0.32, 0);
+        neck.rotation.z = -0.68;
+        neck.castShadow = true;
+        this.neckPivot.add(neck);
+
+        const mane = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.72, 0.08), maneMat);
+        mane.position.set(0.14, 0.42, 0);
+        mane.rotation.z = -0.68;
+        this.neckPivot.add(mane);
+
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.27, 0.24), coatMat);
+        head.position.set(0.66, 0.56, 0);
+        head.rotation.z = -0.35;
+        head.castShadow = true;
+        this.neckPivot.add(head);
+
+        const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.19), coatMat);
+        muzzle.position.set(0.96, 0.46, 0);
+        muzzle.rotation.z = -0.35;
+        this.neckPivot.add(muzzle);
+
+        // Ears
+        [-0.08, 0.08].forEach((zOff) => {
+          const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.18, 6), coatMat);
+          ear.position.set(0.48, 0.78, zOff);
+          ear.rotation.z = -0.2;
+          this.neckPivot.add(ear);
+        });
+
+        // Bridle gold bit
+        const bridle = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.018, 6, 12), goldMat);
+        bridle.position.set(0.88, 0.48, 0);
+        bridle.rotation.y = Math.PI / 2;
+        this.neckPivot.add(bridle);
+
+        // --- Flowing Tail Pivot ---
+        this.tailPivot = new THREE.Group();
+        this.tailPivot.position.set(-0.98, 1.52, 0);
+        this.bodyGroup.add(this.tailPivot);
+
+        const tailMain = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.95, 8), maneMat);
+        tailMain.position.set(-0.28, -0.28, 0);
+        tailMain.rotation.z = -0.78;
+        tailMain.castShadow = true;
+        this.tailPivot.add(tailMain);
+
+        // --- 4 Articulated Legs (Hip/Shoulder -> Upper -> Knee -> Lower -> Hoof) ---
+        this.legs = [];
+        const legSpecs = [
+          { x: 0.62,  z:  0.22, phase: 0.00, isFront: true },
+          { x: 0.62,  z: -0.22, phase: 0.25, isFront: true },
+          { x: -0.62, z:  0.22, phase: 0.55, isFront: false },
+          { x: -0.62, z: -0.22, phase: 0.78, isFront: false }
         ];
 
-        const state = {
-            mode: null,        // 'wifi' | 'offline' | 'local-2p' | 'local-ai'
-            role: 'host',      // 'host' (X) | 'guest' (O)
-            mySymbol: 'X',
-            board: Array(9).fill(null),
-            currentTurn: 'X',
-            startingTurn: 'X',
-            gameOver: false,
-            winLine: null,
-            scores: { X: 0, O: 0, draw: 0 },
-            // Сетевые объекты
-            peer: null,
-            conn: null,
-            rtcPC: null,
-            rtcDC: null
-        };
-
-        const PEER_PREFIX = 'xo-wifi-lan-2026-';
-
-        // ===================== 4. СЕТЕВОЙ МЕНЕДЖЕР =====================
-        const Net = {
-            cleanup() {
-                try { if (state.conn) state.conn.close(); } catch (e) {}
-                try { if (state.peer) state.peer.destroy(); } catch (e) {}
-                try { if (state.rtcDC) state.rtcDC.close(); } catch (e) {}
-                try { if (state.rtcPC) state.rtcPC.close(); } catch (e) {}
-                state.conn = null;
-                state.peer = null;
-                state.rtcDC = null;
-                state.rtcPC = null;
-            },
-
-            send(payload) {
-                const msg = JSON.stringify(payload);
-                try {
-                    if (state.mode === 'wifi' && state.conn && state.conn.open) {
-                        state.conn.send(payload);
-                    } else if (state.mode === 'offline' && state.rtcDC && state.rtcDC.readyState === 'open') {
-                        state.rtcDC.send(msg);
-                    }
-                } catch (e) {
-                    showToast('Ошибка отправки данных по сети', 'error');
-                }
-            },
-
-            handleIncoming(data) {
-                try {
-                    const msg = typeof data === 'string' ? JSON.parse(data) : data;
-                    if (!msg || !msg.type) return;
-
-                    if (msg.type === 'move') {
-                        applyMove(msg.index, msg.symbol, true);
-                    } else if (msg.type === 'restart') {
-                        state.startingTurn = msg.starter;
-                        resetRound(false);
-                        showToast('Начат новый раунд!', 'info');
-                    } else if (msg.type === 'emoji') {
-                        showFloatingEmoji(msg.emoji);
-                    }
-                } catch (e) {
-                    console.error('Ошибка обработки пакета:', e);
-                }
-            },
-
-            // --- РЕЖИМ 1: Wi-Fi через PeerJS (короткий ключ) ---
-            createWifiHost() {
-                if (typeof Peer === 'undefined') {
-                    showToast('Нет доступа к PeerJS. Используйте вкладку «Офлайн LAN»!', 'warn');
-                    return;
-                }
-                this.cleanup();
-                const shortKey = generateShortKey(6);
-                const fullId = PEER_PREFIX + shortKey;
-
-                document.getElementById('btn-create-wifi').disabled = true;
-                document.getElementById('wifi-host-box').classList.remove('hidden');
-                document.getElementById('wifi-host-box').classList.add('flex');
-                document.getElementById('wifi-host-key').textContent = shortKey;
-                document.getElementById('wifi-host-status').textContent = 'Регистрация комнаты...';
-
-                try {
-                    state.peer = new Peer(fullId, { debug: 0 });
-                } catch (e) {
-                    showToast('Ошибка инициализации P2P', 'error');
-                    this.resetWifiHostUI();
-                    return;
-                }
-
-                state.peer.on('open', () => {
-                    document.getElementById('wifi-host-status').textContent = 'Ожидание подключения игрока...';
-                    showToast(`Комната создана! Ключ: ${shortKey}`, 'success');
-                });
-
-                state.peer.on('connection', (conn) => {
-                    if (state.conn) {
-                        conn.close();
-                        return;
-                    }
-                    state.conn = conn;
-                    this.setupPeerConnection(conn, 'host');
-                });
-
-                state.peer.on('error', (err) => {
-                    console.error(err);
-                    showToast('Ошибка сети Wi-Fi P2P. Попробуйте снова или «Офлайн LAN».', 'error');
-                    this.resetWifiHostUI();
-                });
-            },
-
-            joinWifiHost(rawKey) {
-                if (typeof Peer === 'undefined') {
-                    showToast('Нет доступа к PeerJS. Используйте вкладку «Офлайн LAN»!', 'warn');
-                    return;
-                }
-                const key = rawKey.trim().toUpperCase();
-                if (key.length < 4) {
-                    showToast('Введите корректный ключ комнаты', 'warn');
-                    return;
-                }
-
-                this.cleanup();
-                const btn = document.getElementById('btn-join-wifi');
-                btn.disabled = true;
-                btn.textContent = '...';
-
-                try {
-                    state.peer = new Peer({ debug: 0 });
-                } catch (e) {
-                    showToast('Ошибка инициализации P2P', 'error');
-                    btn.disabled = false;
-                    btn.textContent = 'Войти';
-                    return;
-                }
-
-                let timeoutId = setTimeout(() => {
-                    if (!state.conn || !state.conn.open) {
-                        showToast('Хост не найден. Проверьте ключ.', 'error');
-                        this.cleanup();
-                        btn.disabled = false;
-                        btn.textContent = 'Войти';
-                    }
-                }, 10000);
-
-                state.peer.on('open', () => {
-                    const conn = state.peer.connect(PEER_PREFIX + key, { reliable: true });
-                    state.conn = conn;
-                    this.setupPeerConnection(conn, 'guest', () => {
-                        clearTimeout(timeoutId);
-                        btn.disabled = false;
-                        btn.textContent = 'Войти';
-                    });
-                });
-
-                state.peer.on('error', () => {
-                    clearTimeout(timeoutId);
-                    showToast('Не удалось подключиться к хосту. Проверьте ключ.', 'error');
-                    btn.disabled = false;
-                    btn.textContent = 'Войти';
-                });
-            },
-
-            setupPeerConnection(conn, role, onReady) {
-                conn.on('open', () => {
-                    if (onReady) onReady();
-                    SoundEngine.connect();
-                    startGameSession('wifi', role);
-                    showToast('Соединение по Wi-Fi установлено!', 'success');
-                });
-
-                conn.on('data', (data) => this.handleIncoming(data));
-
-                conn.on('close', () => {
-                    showToast('Соперник отключился от игры', 'warn');
-                    document.getElementById('conn-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-                    document.getElementById('conn-label').textContent = 'Соединение потеряно';
-                });
-
-                conn.on('error', () => {
-                    showToast('Сбой P2P-соединения', 'error');
-                });
-            },
-
-            resetWifiHostUI() {
-                this.cleanup();
-                document.getElementById('btn-create-wifi').disabled = false;
-                document.getElementById('wifi-host-box').classList.add('hidden');
-                document.getElementById('wifi-host-box').classList.remove('flex');
-            },
-
-            // --- РЕЖИМ 2: Офлайн LAN (Прямой WebRTC без серверов) ---
-            async createOfflineOffer() {
-                this.cleanup();
-                try {
-                    // Пустой список iceServers = работа строго по локальному Wi-Fi / LAN
-                    const pc = new RTCPeerConnection({ iceServers: [] });
-                    state.rtcPC = pc;
-
-                    const dc = pc.createDataChannel('tictactoe-lan');
-                    state.rtcDC = dc;
-                    this.bindOfflineChannel(dc, 'host');
-
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-
-                    await this.waitForIceComplete(pc);
-                    const key = encodeSDP(pc.localDescription);
-
-                    document.getElementById('offline-offer-text').value = key;
-                    document.getElementById('offline-offer-area').classList.remove('hidden');
-                    document.getElementById('offline-offer-area').classList.add('flex');
-                    showToast('LAN-ключ создан! Передайте его второму игроку.', 'success');
-                } catch (e) {
-                    console.error(e);
-                    showToast('Ошибка создания LAN-ключа', 'error');
-                }
-            },
-
-            async acceptOfflineAnswer(answerStr) {
-                if (!state.rtcPC) {
-                    showToast('Сначала сгенерируйте ключ приглашения', 'warn');
-                    return;
-                }
-                try {
-                    const desc = decodeSDP(answerStr);
-                    await state.rtcPC.setRemoteDescription(new RTCSessionDescription(desc));
-                    showToast('Подключение к игроку в локальной сети...', 'info');
-                } catch (e) {
-                    console.error(e);
-                    showToast('Неверный формат ответного ключа', 'error');
-                }
-            },
-
-            async createOfflineAnswer(offerStr) {
-                this.cleanup();
-                try {
-                    const offerDesc = decodeSDP(offerStr);
-                    const pc = new RTCPeerConnection({ iceServers: [] });
-                    state.rtcPC = pc;
-
-                    pc.ondatachannel = (event) => {
-                        state.rtcDC = event.channel;
-                        this.bindOfflineChannel(event.channel, 'guest');
-                    };
-
-                    await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-
-                    await this.waitForIceComplete(pc);
-                    const answerKey = encodeSDP(pc.localDescription);
-
-                    document.getElementById('offline-answer-text').value = answerKey;
-                    document.getElementById('offline-answer-area').classList.remove('hidden');
-                    document.getElementById('offline-answer-area').classList.add('flex');
-                    showToast('Ответный ключ готов! Передайте его Хосту.', 'success');
-                } catch (e) {
-                    console.error(e);
-                    showToast('Не удалось прочитать ключ приглашения', 'error');
-                }
-            },
-
-            waitForIceComplete(pc) {
-                return new Promise((resolve) => {
-                    if (pc.iceGatheringState === 'complete') {
-                        resolve();
-                        return;
-                    }
-                    const timer = setTimeout(resolve, 2000);
-                    pc.onicegatheringstatechange = () => {
-                        if (pc.iceGatheringState === 'complete') {
-                            clearTimeout(timer);
-                            resolve();
-                        }
-                    };
-                });
-            },
-
-            bindOfflineChannel(dc, role) {
-                dc.onopen = () => {
-                    SoundEngine.connect();
-                    startGameSession('offline', role);
-                    showToast('Прямое LAN-соединение установлено!', 'success');
-                };
-                dc.onmessage = (e) => this.handleIncoming(e.data);
-                dc.onclose = () => {
-                    showToast('LAN-соединение закрыто', 'warn');
-                    document.getElementById('conn-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-                    document.getElementById('conn-label').textContent = 'Соединение потеряно';
-                };
-            }
-        };
-
-        // ===================== 5. ИГРОВАЯ ЛОГИКА =====================
-        function startGameSession(mode, role = 'host') {
-            state.mode = mode;
-            state.role = role;
-            state.mySymbol = role === 'host' ? 'X' : 'O';
-            state.scores = { X: 0, O: 0, draw: 0 };
-            state.startingTurn = 'X';
-
-            // Настройка подписей игроков
-            const labelX = document.getElementById('label-player-x');
-            const labelO = document.getElementById('label-player-o');
-            const connLabel = document.getElementById('conn-label');
-            const connDot = document.getElementById('conn-dot');
-            const emojiBar = document.getElementById('emoji-bar');
-
-            connDot.className = 'relative w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot';
-
-            if (mode === 'wifi' || mode === 'offline') {
-                labelX.textContent = role === 'host' ? 'Вы • Хост (X)' : 'Хост (X)';
-                labelO.textContent = role === 'guest' ? 'Вы • Гость (O)' : 'Гость (O)';
-                connLabel.textContent = mode === 'wifi' ? 'Wi-Fi P2P • Подключено' : 'Офлайн LAN • Прямой P2P';
-                emojiBar.classList.remove('hidden');
-            } else if (mode === 'local-2p') {
-                labelX.textContent = 'Игрок 1 (X)';
-                labelO.textContent = 'Игрок 2 (O)';
-                connLabel.textContent = 'Локально • 2 игрока';
-                emojiBar.classList.add('hidden');
-            } else if (mode === 'local-ai') {
-                labelX.textContent = 'Вы (X)';
-                labelO.textContent = 'Бот (O)';
-                connLabel.textContent = 'Локально • Против Бота';
-                emojiBar.classList.add('hidden');
-            }
-
-            // Переключение экранов
-            document.getElementById('lobby-screen').classList.add('hidden');
-            const gameScreen = document.getElementById('game-screen');
-            gameScreen.classList.remove('hidden');
-            gameScreen.classList.add('flex');
-
-            updateScoreUI();
-            resetRound(false);
-        }
-
-        function resetRound(broadcast = false) {
-            state.board = Array(9).fill(null);
-            state.currentTurn = state.startingTurn;
-            state.gameOver = false;
-            state.winLine = null;
-
-            document.getElementById('btn-rematch').classList.add('hidden');
-            renderBoard();
-            updateTurnBanner();
-
-            if (broadcast && (state.mode === 'wifi' || state.mode === 'offline')) {
-                Net.send({ type: 'restart', starter: state.startingTurn });
-            }
-
-            // Если в режиме с ботом первый ход у бота
-            if (state.mode === 'local-ai' && state.currentTurn === 'O') {
-                setTimeout(makeBotMove, 450);
-            }
-        }
-
-        function handleCellClick(index) {
-            if (state.gameOver || state.board[index] !== null) return;
-
-            // В сетевых режимах разрешаем ходить только в свой ход
-            if (state.mode === 'wifi' || state.mode === 'offline') {
-                if (state.currentTurn !== state.mySymbol) {
-                    showToast('Сейчас ход соперника!', 'warn');
-                    return;
-                }
-                applyMove(index, state.mySymbol, false);
-                Net.send({ type: 'move', index, symbol: state.mySymbol });
-                return;
-            }
-
-            // В режиме против бота игрок всегда X
-            if (state.mode === 'local-ai') {
-                if (state.currentTurn !== 'X') return;
-                applyMove(index, 'X', false);
-                if (!state.gameOver) {
-                    setTimeout(makeBotMove, 420);
-                }
-                return;
-            }
-
-            // Локальный режим на двоих
-            applyMove(index, state.currentTurn, false);
-        }
-
-        function applyMove(index, symbol, isRemote) {
-            if (state.gameOver || state.board[index] !== null) return;
-
-            state.board[index] = symbol;
-            if (symbol === 'X') SoundEngine.moveX();
-            else SoundEngine.moveO();
-
-            const winLine = checkWinner(state.board, symbol);
-            if (winLine) {
-                state.gameOver = true;
-                state.winLine = winLine;
-                state.scores[symbol]++;
-                SoundEngine.win();
-                updateScoreUI();
-                renderBoard();
-                showEndState(symbol);
-                return;
-            }
-
-            if (state.board.every(cell => cell !== null)) {
-                state.gameOver = true;
-                state.scores.draw++;
-                SoundEngine.draw();
-                updateScoreUI();
-                renderBoard();
-                showEndState('draw');
-                return;
-            }
-
-            state.currentTurn = symbol === 'X' ? 'O' : 'X';
-            renderBoard();
-            updateTurnBanner();
-        }
-
-        function checkWinner(board, symbol) {
-            for (const line of WIN_LINES) {
-                if (line.every(idx => board[idx] === symbol)) {
-                    return line;
-                }
-            }
-            return null;
-        }
-
-        // Умный бот (Минимакс с небольшой вариативностью)
-        function makeBotMove() {
-            if (state.gameOver || state.currentTurn !== 'O') return;
-            const bestIdx = findBestMove(state.board);
-            if (bestIdx !== -1) {
-                applyMove(bestIdx, 'O', false);
-            }
-        }
-
-        function findBestMove(board) {
-            // 1. Выиграть, если возможно
-            for (let i = 0; i < 9; i++) {
-                if (!board[i]) {
-                    board[i] = 'O';
-                    if (checkWinner(board, 'O')) { board[i] = null; return i; }
-                    board[i] = null;
-                }
-            }
-            // 2. Заблокировать игрока
-            for (let i = 0; i < 9; i++) {
-                if (!board[i]) {
-                    board[i] = 'X';
-                    if (checkWinner(board, 'X')) { board[i] = null; return i; }
-                    board[i] = null;
-                }
-            }
-            // 3. Центр
-            if (!board[4]) return 4;
-            // 4. Случайный угол или клетка
-            const corners = [0, 2, 6, 8].filter(i => !board[i]);
-            if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
-            const empty = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
-            return empty.length ? empty[Math.floor(Math.random() * empty.length)] : -1;
-        }
-
-        // ===================== 6. ОТРИСОВКА ИНТЕРФЕЙСА =====================
-        function getSymbolSVG(symbol) {
-            if (symbol === 'X') {
-                return `
-                    <svg class="w-12 h-12 sm:w-14 sm:h-14" viewBox="0 0 64 64" fill="none">
-                        <path class="animate-draw" d="M16 16L48 48" stroke="#22d3ee" stroke-width="7" stroke-linecap="round"/>
-                        <path class="animate-draw" d="M48 16L16 48" stroke="#22d3ee" stroke-width="7" stroke-linecap="round"/>
-                    </svg>
-                `;
-            }
-            if (symbol === 'O') {
-                return `
-                    <svg class="w-12 h-12 sm:w-14 sm:h-14" viewBox="0 0 64 64" fill="none">
-                        <circle class="animate-draw" cx="32" cy="32" r="18" stroke="#fb7185" stroke-width="7"/>
-                    </svg>
-                `;
-            }
-            return '';
-        }
-
-        function renderBoard() {
-            const boardEl = document.getElementById('game-board');
-            boardEl.innerHTML = '';
-
-            state.board.forEach((cell, idx) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                let classes = 'board-cell rounded-2xl flex items-center justify-center focus:outline-none';
-
-                if (state.winLine && state.winLine.includes(idx)) {
-                    classes += cell === 'X' ? ' win-x' : ' win-o';
-                }
-
-                btn.className = classes;
-                btn.disabled = state.gameOver || cell !== null;
-                btn.innerHTML = getSymbolSVG(cell);
-                btn.addEventListener('click', () => handleCellClick(idx));
-                boardEl.appendChild(btn);
-            });
-        }
-
-        function updateScoreUI() {
-            document.getElementById('score-x').textContent = state.scores.X;
-            document.getElementById('score-o').textContent = state.scores.O;
-            document.getElementById('score-draw').textContent = state.scores.draw;
-        }
-
-        function updateTurnBanner() {
-            const banner = document.getElementById('turn-banner');
-            const isOnline = state.mode === 'wifi' || state.mode === 'offline';
-
-            if (isOnline) {
-                const myTurn = state.currentTurn === state.mySymbol;
-                if (myTurn) {
-                    banner.textContent = `Ваш ход (${state.mySymbol})`;
-                    banner.className = `py-2.5 px-4 rounded-2xl text-center text-sm font-bold border transition ${
-                        state.mySymbol === 'X'
-                            ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
-                            : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
-                    }`;
-                } else {
-                    banner.textContent = `Ход соперника (${state.currentTurn})...`;
-                    banner.className = 'py-2.5 px-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center text-sm font-semibold text-slate-400 transition';
-                }
-            } else {
-                const text = state.currentTurn === 'X'
-                    ? (state.mode === 'local-ai' ? 'Ваш ход (X)' : 'Ходит Игрок 1 (X)')
-                    : (state.mode === 'local-ai' ? 'Бот думает...' : 'Ходит Игрок 2 (O)');
-                banner.textContent = text;
-                banner.className = `py-2.5 px-4 rounded-2xl text-center text-sm font-bold border transition ${
-                    state.currentTurn === 'X'
-                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
-                        : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
-                }`;
-            }
-        }
-
-        function showEndState(result) {
-            const banner = document.getElementById('turn-banner');
-            const rematchBtn = document.getElementById('btn-rematch');
-            const isOnline = state.mode === 'wifi' || state.mode === 'offline';
-
-            if (result === 'draw') {
-                banner.textContent = 'Ничья! Отличная партия 🤝';
-                banner.className = 'py-2.5 px-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-center text-sm font-bold text-amber-300';
-            } else if (isOnline) {
-                const iWon = result === state.mySymbol;
-                banner.textContent = iWon ? 'Вы победили! 🎉' : 'Соперник победил! 💫';
-                banner.className = iWon
-                    ? 'py-2.5 px-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-center text-sm font-bold text-emerald-300'
-                    : 'py-2.5 px-4 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-center text-sm font-bold text-rose-300';
-            } else {
-                const winnerText = result === 'X'
-                    ? (state.mode === 'local-ai' ? 'Вы победили! 🎉' : 'Победил Игрок 1 (X)! 🎉')
-                    : (state.mode === 'local-ai' ? 'Победил Бот (O) 🤖' : 'Победил Игрок 2 (O)! 🎉');
-                banner.textContent = winnerText;
-                banner.className = 'py-2.5 px-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-center text-sm font-bold text-emerald-300';
-            }
-
-            rematchBtn.classList.remove('hidden');
-        }
-
-        function showFloatingEmoji(emoji) {
-            const overlay = document.getElementById('emoji-overlay');
-            const el = document.createElement('div');
-            el.className = 'emoji-pop text-4xl drop-shadow-lg';
-            el.textContent = emoji;
-            overlay.appendChild(el);
-            setTimeout(() => el.remove(), 1700);
-        }
-
-        // ===================== 7. ОБРАБОТЧИКИ СОБЫТИЙ =====================
-        document.addEventListener('DOMContentLoaded', () => {
-            // Переключение вкладок лобби
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const tabs = {
-                wifi: document.getElementById('tab-wifi'),
-                offline: document.getElementById('tab-offline'),
-                local: document.getElementById('tab-local')
-            };
-
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const target = btn.dataset.tab;
-                    tabBtns.forEach(b => {
-                        b.className = 'tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-slate-200';
-                    });
-                    btn.className = 'tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-800 text-cyan-400 shadow';
-
-                    Object.entries(tabs).forEach(([key, el]) => {
-                        if (key === target) {
-                            el.classList.remove('hidden');
-                            el.classList.add('flex');
-                        } else {
-                            el.classList.add('hidden');
-                            el.classList.remove('flex');
-                        }
-                    });
-                });
-            });
-
-            // Кнопка звука
-            document.getElementById('sound-toggle').addEventListener('click', () => {
-                SoundEngine.enabled = !SoundEngine.enabled;
-                document.getElementById('sound-icon-on').classList.toggle('hidden', !SoundEngine.enabled);
-                document.getElementById('sound-icon-off').classList.toggle('hidden', SoundEngine.enabled);
-                if (SoundEngine.enabled) SoundEngine.moveX();
-            });
-
-            // Wi-Fi (PeerJS) события
-            document.getElementById('btn-create-wifi').addEventListener('click', () => Net.createWifiHost());
-            document.getElementById('btn-cancel-wifi-host').addEventListener('click', () => Net.resetWifiHostUI());
-            document.getElementById('btn-copy-wifi-key').addEventListener('click', () => {
-                copyToClipboard(document.getElementById('wifi-host-key').textContent);
-            });
-            document.getElementById('btn-join-wifi').addEventListener('click', () => {
-                Net.joinWifiHost(document.getElementById('wifi-join-input').value);
-            });
-            document.getElementById('wifi-join-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') Net.joinWifiHost(e.target.value);
-            });
-
-            // Офлайн LAN события
-            const hostModeBtn = document.getElementById('btn-offline-host-mode');
-            const guestModeBtn = document.getElementById('btn-offline-guest-mode');
-            const hostPanel = document.getElementById('offline-host-panel');
-            const guestPanel = document.getElementById('offline-guest-panel');
-
-            hostModeBtn.addEventListener('click', () => {
-                hostPanel.classList.remove('hidden');
-                hostPanel.classList.add('flex');
-                guestPanel.classList.add('hidden');
-                guestPanel.classList.remove('flex');
-                hostModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-800 border border-cyan-500/50 text-cyan-300 font-bold text-xs sm:text-sm transition';
-                guestModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-rose-500/50 font-bold text-xs sm:text-sm transition';
-            });
-
-            guestModeBtn.addEventListener('click', () => {
-                guestPanel.classList.remove('hidden');
-                guestPanel.classList.add('flex');
-                hostPanel.classList.add('hidden');
-                hostPanel.classList.remove('flex');
-                guestModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-800 border border-rose-500/50 text-rose-300 font-bold text-xs sm:text-sm transition';
-                hostModeBtn.className = 'py-3 px-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-300 hover:border-cyan-500/50 font-bold text-xs sm:text-sm transition';
-            });
-
-            document.getElementById('btn-gen-offer').addEventListener('click', () => Net.createOfflineOffer());
-            document.getElementById('btn-copy-offer').addEventListener('click', () => {
-                copyToClipboard(document.getElementById('offline-offer-text').value);
-            });
-            document.getElementById('btn-accept-answer').addEventListener('click', () => {
-                Net.acceptOfflineAnswer(document.getElementById('offline-answer-input').value);
-            });
-            document.getElementById('btn-gen-answer').addEventListener('click', () => {
-                Net.createOfflineAnswer(document.getElementById('offline-offer-input').value);
-            });
-            document.getElementById('btn-copy-answer').addEventListener('click', () => {
-                copyToClipboard(document.getElementById('offline-answer-text').value);
-            });
-
-            // Локальные режимы
-            document.getElementById('btn-start-local-2p').addEventListener('click', () => startGameSession('local-2p', 'host'));
-            document.getElementById('btn-start-local-ai').addEventListener('click', () => startGameSession('local-ai', 'host'));
-
-            // Реванш (чередуем, кто ходит первым в новом раунде)
-            document.getElementById('btn-rematch').addEventListener('click', () => {
-                state.startingTurn = state.startingTurn === 'X' ? 'O' : 'X';
-                resetRound(true);
-            });
-
-            // Выход в лобби
-            document.getElementById('btn-leave-game').addEventListener('click', () => {
-                Net.resetWifiHostUI();
-                document.getElementById('game-screen').classList.add('hidden');
-                document.getElementById('game-screen').classList.remove('flex');
-                document.getElementById('lobby-screen').classList.remove('hidden');
-            });
-
-            // Быстрые эмоции
-            document.querySelectorAll('.emoji-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const emoji = btn.dataset.emoji;
-                    showFloatingEmoji(emoji);
-                    Net.send({ type: 'emoji', emoji });
-                });
-            });
+        legSpecs.forEach((spec) => {
+          const upperPivot = new THREE.Group();
+          upperPivot.position.set(spec.x, 1.24, spec.z);
+          this.bodyGroup.add(upperPivot);
+
+          const upperLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.085, 0.62, 8), coatMat);
+          upperLeg.position.y = -0.31;
+          upperLeg.castShadow = true;
+          upperPivot.add(upperLeg);
+
+          const lowerPivot = new THREE.Group();
+          lowerPivot.position.set(0, -0.60, 0);
+          upperPivot.add(lowerPivot);
+
+          const lowerLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.06, 0.56, 8), coatMat);
+          lowerLeg.position.y = -0.28;
+          lowerLeg.castShadow = true;
+          lowerPivot.add(lowerLeg);
+
+          const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.085, 0.12, 8), hoofMat);
+          hoof.position.y = -0.58;
+          lowerPivot.add(hoof);
+
+          this.legs.push({ upperPivot, lowerPivot, phase: spec.phase, isFront: spec.isFront });
         });
-    </script>
+
+        // --- Numbered Saddle Cloth & Saddle ---
+        const saddleTex = TextureFactory.createSaddleTexture(config.id, config.silk);
+        const clothMat = new THREE.MeshStandardMaterial({ map: saddleTex, roughness: 0.5 });
+        const saddleCloth = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.44, 0.89), clothMat);
+        saddleCloth.position.set(0.02, 1.56, 0);
+        this.bodyGroup.add(saddleCloth);
+
+        const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 0.52), leatherMat);
+        saddle.position.set(0.02, 1.82, 0);
+        this.bodyGroup.add(saddle);
+
+        // --- Jockey (Hunched Aerodynamic Racing Stance) ---
+        this.jockeyGroup = new THREE.Group();
+        this.jockeyGroup.position.set(0.08, 1.92, 0);
+        this.bodyGroup.add(this.jockeyGroup);
+
+        // Breeches / legs
+        const jLegs = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.28, 0.44), whiteMat);
+        jLegs.position.set(-0.08, 0.02, 0);
+        this.jockeyGroup.add(jLegs);
+
+        // Torso in vibrant silk
+        const jTorso = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.36, 6, 10), silkMat);
+        jTorso.position.set(0.16, 0.28, 0);
+        jTorso.rotation.z = -1.05;
+        jTorso.castShadow = true;
+        this.jockeyGroup.add(jTorso);
+
+        // Arms reaching forward
+        const jArms = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.11, 0.32), silkMat);
+        jArms.position.set(0.42, 0.26, 0);
+        jArms.rotation.z = -0.2;
+        this.jockeyGroup.add(jArms);
+
+        // Head & glossy helmet
+        const jHead = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), skinMat);
+        jHead.position.set(0.44, 0.45, 0);
+        this.jockeyGroup.add(jHead);
+
+        const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), silkMat);
+        helmet.position.set(0.44, 0.47, 0);
+        helmet.rotation.z = -0.25;
+        this.jockeyGroup.add(helmet);
+
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.2), goldMat);
+        visor.position.set(0.57, 0.50, 0);
+        this.jockeyGroup.add(visor);
+
+        this.gallopPhase = Math.random() * Math.PI * 2;
+      }
+
+      updateAnimation(dt, speed, isRacing) {
+        if (!isRacing && speed < 0.2) {
+          // Subtle idle breathing / pawing in starting box
+          this.gallopPhase += dt * 2.2;
+          this.bodyGroup.position.y = Math.sin(this.gallopPhase) * 0.02;
+          this.bodyGroup.rotation.z = 0;
+          this.neckPivot.rotation.z = Math.sin(this.gallopPhase * 0.8) * 0.05;
+          this.tailPivot.rotation.z = Math.sin(this.gallopPhase * 1.1) * 0.08;
+          this.legs.forEach((leg) => {
+            leg.upperPivot.rotation.z *= 0.85;
+            leg.lowerPivot.rotation.z *= 0.85;
+          });
+          return;
+        }
+
+        const strideRate = 5.5 + speed * 0.72;
+        this.gallopPhase += dt * strideRate;
+
+        // Vertical bounce & slight pitch of horse body
+        this.bodyGroup.position.y = Math.abs(Math.sin(this.gallopPhase)) * 0.16;
+        this.bodyGroup.rotation.z = Math.cos(this.gallopPhase) * 0.065;
+
+        // Head pump & tail stream
+        this.neckPivot.rotation.z = Math.sin(this.gallopPhase - 0.6) * 0.14;
+        this.tailPivot.rotation.z = -0.22 + Math.sin(this.gallopPhase * 1.4) * 0.18;
+
+        // Jockey stabilizing bounce
+        this.jockeyGroup.position.y = 1.92 - Math.abs(Math.sin(this.gallopPhase)) * 0.06;
+
+        // Articulated 4-beat gallop legs
+        this.legs.forEach((leg) => {
+          const p = this.gallopPhase + leg.phase * Math.PI * 2;
+          const swing = Math.sin(p) * 0.75;
+          leg.upperPivot.rotation.z = swing;
+
+          // Knee / hock flexion
+          const flex = leg.isFront
+            ? Math.max(0, -Math.cos(p)) * -1.05
+            : Math.max(0, Math.cos(p)) * 0.85;
+          leg.lowerPivot.rotation.z = flex;
+        });
+      }
+    }
+
+    /* =========================================================================
+     * 4. 3D TRACK SCENE (THREE.JS + PARTICLES + CINEMATIC CAMERA)
+     * ========================================================================= */
+    class Track3DScene {
+      constructor(canvas, container) {
+        this.canvas = canvas;
+        this.container = container;
+        this.trackLength = 180; // Point A (X=0) to Point B (X=180)
+        this.laneZ = [-6.25, -3.75, -1.25, 1.25, 3.75, 6.25];
+        this.horses = [];
+        this.gateDoors = [];
+        this.finishLights = [];
+        this.particles = [];
+        this.particleIndex = 0;
+
+        this.gateOpenProgress = 0;
+        this.cameraOrbitOffset = { x: 0, y: 0 };
+        this.isDragging = false;
+        this.lastPointer = { x: 0, y: 0 };
+        this.photoFinishMode = false;
+        this.time = 0;
+      }
+
+      async init(onProgress) {
+        onProgress(15, 'Создание 3D-рендера...');
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: this.canvas,
+          antialias: true,
+          powerPreference: 'high-performance'
+        });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.15;
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x060A14);
+        this.scene.fog = new THREE.FogExp2(0x060A14, 0.0085);
+
+        this.camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.5, 450);
+        this.camera.position.set(10, 7.5, 22);
+        this.cameraLookAt = new THREE.Vector3(6, 2.0, 0);
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.bindCameraInteraction();
+
+        onProgress(35, 'Настройка VIP-освещения...');
+        this.setupLighting();
+
+        onProgress(55, 'Генерация ипподрома и трибун...');
+        this.buildEnvironment();
+        this.buildStartingGates();
+        this.buildFinishArch();
+
+        onProgress(78, 'Сборка 3D-лошадей и жокеев...');
+        this.buildHorses();
+        this.buildParticlePool();
+
+        onProgress(100, 'Зал NVR готов!');
+      }
+
+      resize() {
+        if (!this.container || !this.renderer) return;
+        const w = this.container.clientWidth || 360;
+        const h = this.container.clientHeight || 200;
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+
+      bindCameraInteraction() {
+        const el = this.canvas;
+        const start = (x, y) => {
+          this.isDragging = true;
+          this.lastPointer = { x, y };
+        };
+        const move = (x, y) => {
+          if (!this.isDragging) return;
+          const dx = x - this.lastPointer.x;
+          const dy = y - this.lastPointer.y;
+          this.lastPointer = { x, y };
+          this.cameraOrbitOffset.x = THREE.MathUtils.clamp(this.cameraOrbitOffset.x + dx * 0.05, -10, 10);
+          this.cameraOrbitOffset.y = THREE.MathUtils.clamp(this.cameraOrbitOffset.y + dy * 0.03, -2, 6);
+        };
+        const end = () => { this.isDragging = false; };
+
+        el.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
+        window.addEventListener('mouseup', end);
+
+        el.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        el.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 1) move(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        el.addEventListener('touchend', end);
+      }
+
+      setupLighting() {
+        const hemi = new THREE.HemisphereLight(0x9BB8FF, 0x0B291C, 0.75);
+        this.scene.add(hemi);
+
+        const dirLight = new THREE.DirectionalLight(0xFFF4D8, 1.85);
+        dirLight.position.set(80, 55, 45);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 260;
+        dirLight.shadow.camera.left = -120;
+        dirLight.shadow.camera.right = 140;
+        dirLight.shadow.camera.top = 35;
+        dirLight.shadow.camera.bottom = -35;
+        this.scene.add(dirLight);
+
+        // Warm golden rim light along the track
+        const goldAccent = new THREE.PointLight(0xFCE08B, 2.2, 85);
+        goldAccent.position.set(this.trackLength, 11, 4);
+        this.scene.add(goldAccent);
+      }
+
+      buildEnvironment() {
+        // Outer dark ground
+        const outerGround = new THREE.Mesh(
+          new THREE.PlaneGeometry(340, 140),
+          new THREE.MeshStandardMaterial({ color: 0x07120E, roughness: 0.95 })
+        );
+        outerGround.rotation.x = -Math.PI / 2;
+        outerGround.position.set(90, -0.05, 0);
+        this.scene.add(outerGround);
+
+        // Main emerald turf track
+        const turfTex = TextureFactory.createTurfTexture();
+        const trackMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(240, 17),
+          new THREE.MeshStandardMaterial({ map: turfTex, roughness: 0.82 })
+        );
+        trackMesh.rotation.x = -Math.PI / 2;
+        trackMesh.position.set(95, 0, 0);
+        trackMesh.receiveShadow = true;
+        this.scene.add(trackMesh);
+
+        // White rails with gold finials on inner (z=-9) and outer (z=9) edges
+        const railMat = new THREE.MeshStandardMaterial({ color: 0xF3F4F6, roughness: 0.35 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, roughness: 0.25, metalness: 0.85 });
+
+        [-9.0, 9.0].forEach((zPos) => {
+          const topBar = new THREE.Mesh(new THREE.BoxGeometry(235, 0.14, 0.14), railMat);
+          topBar.position.set(95, 1.15, zPos);
+          this.scene.add(topBar);
+
+          const midBar = new THREE.Mesh(new THREE.BoxGeometry(235, 0.09, 0.09), railMat);
+          midBar.position.set(95, 0.65, zPos);
+          this.scene.add(midBar);
+
+          for (let x = -10; x <= 205; x += 10) {
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.25, 6), railMat);
+            post.position.set(x, 0.62, zPos);
+            this.scene.add(post);
+
+            const cap = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), goldMat);
+            cap.position.set(x, 1.28, zPos);
+            this.scene.add(cap);
+          }
+        });
+
+        // Distance markers (100м, 200м, 300м)
+        const markers = [
+          { x: 45, label: '100м' },
+          { x: 90, label: '200м' },
+          { x: 135, label: '300м' }
+        ];
+        markers.forEach((m) => {
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6), goldMat);
+          pole.position.set(m.x, 1.25, -10.2);
+          this.scene.add(pole);
+
+          const signTex = TextureFactory.createDistanceSignTexture(m.label);
+          const sign = new THREE.Mesh(
+            new THREE.BoxGeometry(2.6, 1.25, 0.16),
+            new THREE.MeshStandardMaterial({ map: signTex, emissive: 0x241B05, roughness: 0.4 })
+          );
+          sign.position.set(m.x, 2.75, -10.2);
+          this.scene.add(sign);
+        });
+
+        // Glowing NVR CASINO LED Perimeter Board along far side
+        const ledTex = TextureFactory.createLedBoardTexture();
+        const ledBoard = new THREE.Mesh(
+          new THREE.BoxGeometry(225, 2.2, 0.35),
+          new THREE.MeshStandardMaterial({
+            map: ledTex,
+            emissive: 0xFFFFFF,
+            emissiveMap: ledTex,
+            emissiveIntensity: 0.72,
+            roughness: 0.3
+          })
+        );
+        ledBoard.position.set(95, 1.15, -12.5);
+        this.scene.add(ledBoard);
+
+        // Luxury Stadium Grandstands (terraced tiers + roof + crowd glow)
+        const standMat = new THREE.MeshStandardMaterial({ color: 0x111726, roughness: 0.75 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x1A2236, roughness: 0.5, metalness: 0.35 });
+        for (let tier = 0; tier < 4; tier++) {
+          const step = new THREE.Mesh(new THREE.BoxGeometry(210, 1.6, 2.6), standMat);
+          step.position.set(95, 2.6 + tier * 1.5, -16 - tier * 2.4);
+          this.scene.add(step);
+
+          const trim = new THREE.Mesh(new THREE.BoxGeometry(210, 0.14, 0.15), goldMat);
+          trim.position.set(95, 3.45 + tier * 1.5, -14.7 - tier * 2.4);
+          this.scene.add(trim);
+        }
+        const canopy = new THREE.Mesh(new THREE.BoxGeometry(212, 0.55, 12), roofMat);
+        canopy.position.set(95, 12.2, -19.5);
+        canopy.rotation.x = 0.12;
+        this.scene.add(canopy);
+
+        // Tall Stadium Floodlight Towers
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0x263044, metalness: 0.65, roughness: 0.35 });
+        const lampMat = new THREE.MeshBasicMaterial({ color: 0xFFF7DC });
+        for (let x = 10; x <= 190; x += 45) {
+          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.52, 22, 8), towerMat);
+          tower.position.set(x, 11, -26);
+          this.scene.add(tower);
+
+          const head = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.6, 0.8), lampMat);
+          head.position.set(x, 22, -25.2);
+          head.rotation.x = 0.35;
+          this.scene.add(head);
+        }
+      }
+
+      // Point A: 3D Metallic Starting Gates with 12 hinged doors
+      buildStartingGates() {
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xCBD5E1, metalness: 0.78, roughness: 0.25 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, metalness: 0.85, roughness: 0.25 });
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x0A3D28, metalness: 0.45, roughness: 0.4 });
+
+        const topBeam = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 16.5), frameMat);
+        topBeam.position.set(0.4, 3.85, 0);
+        this.scene.add(topBeam);
+
+        const goldHeader = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.22, 16.6), goldMat);
+        goldHeader.position.set(0.4, 4.2, 0);
+        this.scene.add(goldHeader);
+
+        // Stall dividers
+        for (let i = 0; i <= 6; i++) {
+          const z = -7.5 + i * 2.5;
+          const divider = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.2, 0.14), frameMat);
+          divider.position.set(-0.2, 1.15, z);
+          this.scene.add(divider);
+
+          const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 3.9, 8), frameMat);
+          pillar.position.set(1.45, 1.95, z);
+          this.scene.add(pillar);
+        }
+
+        // Hinged double doors per stall
+        this.gateDoors = [];
+        for (let i = 0; i < 6; i++) {
+          const zCenter = this.laneZ[i];
+
+          const leftPivot = new THREE.Group();
+          leftPivot.position.set(1.45, 1.1, zCenter - 1.18);
+          const leftDoor = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.85, 1.12), doorMat);
+          leftDoor.position.z = 0.56;
+          leftPivot.add(leftDoor);
+          this.scene.add(leftPivot);
+
+          const rightPivot = new THREE.Group();
+          rightPivot.position.set(1.45, 1.1, zCenter + 1.18);
+          const rightDoor = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.85, 1.12), doorMat);
+          rightDoor.position.z = -0.56;
+          rightPivot.add(rightDoor);
+          this.scene.add(rightPivot);
+
+          this.gateDoors.push({ leftPivot, rightPivot });
+        }
+      }
+
+      // Point B: Luxury Casino Finish Arch with Flashing Lights & Checkered Line
+      buildFinishArch() {
+        const fx = this.trackLength;
+        const checkerTex = TextureFactory.createCheckerTexture();
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, metalness: 0.88, roughness: 0.2 });
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x0B0E17, metalness: 0.5, roughness: 0.4 });
+
+        // Checkered ground finish line
+        const line = new THREE.Mesh(
+          new THREE.PlaneGeometry(2.4, 17),
+          new THREE.MeshBasicMaterial({ map: checkerTex })
+        );
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(fx, 0.03, 0);
+        this.scene.add(line);
+
+        // Two ornate columns
+        [-9.2, 9.2].forEach((z) => {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 9.0, 12), darkMat);
+          col.position.set(fx, 4.5, z);
+          this.scene.add(col);
+
+          const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.12, 8, 16), goldMat);
+          ring1.rotation.x = Math.PI / 2;
+          ring1.position.set(fx, 1.5, z);
+          this.scene.add(ring1);
+
+          const ring2 = ring1.clone();
+          ring2.position.y = 8.4;
+          this.scene.add(ring2);
+        });
+
+        // Overhead Casino Finish Banner
+        const archBeam = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.2, 19.6), darkMat);
+        archBeam.position.set(fx, 8.8, 0);
+        this.scene.add(archBeam);
+
+        const checkerStrip = new THREE.Mesh(
+          new THREE.BoxGeometry(1.9, 0.65, 18.6),
+          new THREE.MeshBasicMaterial({ map: checkerTex })
+        );
+        checkerStrip.position.set(fx, 8.8, 0);
+        this.scene.add(checkerStrip);
+
+        const topGoldTrim = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.25, 19.8), goldMat);
+        topGoldTrim.position.set(fx, 9.95, 0);
+        this.scene.add(topGoldTrim);
+
+        // Flashing marquee bulbs
+        this.finishLights = [];
+        for (let z = -8.5; z <= 8.5; z += 1.7) {
+          const bulbMat = new THREE.MeshBasicMaterial({ color: 0xFCE08B });
+          const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), bulbMat);
+          bulb.position.set(fx - 1.0, 7.75, z);
+          this.scene.add(bulb);
+          this.finishLights.push(bulb);
+        }
+      }
+
+      buildHorses() {
+        this.horses = HORSE_CATALOG.map((cfg, idx) => {
+          const model = new HorseModel(cfg);
+          model.root.position.set(0, 0, this.laneZ[idx]);
+          this.scene.add(model.root);
+          return model;
+        });
+      }
+
+      buildParticlePool() {
+        const geo = new THREE.SphereGeometry(0.16, 6, 6);
+        for (let i = 0; i < 90; i++) {
+          const mat = new THREE.MeshBasicMaterial({
+            color: i % 3 === 0 ? 0x1E6B47 : 0xA89578,
+            transparent: true,
+            opacity: 0
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.visible = false;
+          this.scene.add(mesh);
+          this.particles.push({
+            mesh,
+            vel: new THREE.Vector3(),
+            life: 0,
+            maxLife: 0.45
+          });
+        }
+      }
+
+      spawnDust(x, z) {
+        const p = this.particles[this.particleIndex];
+        this.particleIndex = (this.particleIndex + 1) % this.particles.length;
+        p.mesh.position.set(x - 0.8 + (Math.random() - 0.5) * 0.4, 0.18, z + (Math.random() - 0.5) * 0.4);
+        p.mesh.scale.setScalar(0.6 + Math.random() * 0.7);
+        p.vel.set(-2.5 - Math.random() * 2.5, 1.4 + Math.random() * 1.6, (Math.random() - 0.5) * 1.2);
+        p.life = p.maxLife;
+        p.mesh.visible = true;
+      }
+
+      resetGatesAndPositions() {
+        this.gateOpenProgress = 0;
+        this.photoFinishMode = false;
+        this.gateDoors.forEach((g) => {
+          g.leftPivot.rotation.y = 0;
+          g.rightPivot.rotation.y = 0;
+        });
+        this.horses.forEach((h, idx) => {
+          h.root.position.set(0, 0, this.laneZ[idx]);
+          h.updateAnimation(0.016, 0, false);
+        });
+      }
+
+      openGates() {
+        gsap.to(this, {
+          gateOpenProgress: 1,
+          duration: 0.38,
+          ease: 'back.out(1.5)'
+        });
+      }
+
+      update(dt, raceState) {
+        this.time += dt;
+
+        // Animate starting gate doors
+        const angle = this.gateOpenProgress * (Math.PI * 0.56);
+        this.gateDoors.forEach((g) => {
+          g.leftPivot.rotation.y = angle;
+          g.rightPivot.rotation.y = -angle;
+        });
+
+        // Animate finish arch chase lights
+        this.finishLights.forEach((bulb, i) => {
+          const wave = Math.sin(this.time * 8 + i * 0.85);
+          bulb.material.color.setHex(wave > 0 ? 0xFCE08B : 0x22C55E);
+        });
+
+        // Update horses and spawn hoof dust particles
+        let leadX = 0;
+        let avgX = 0;
+        raceState.runners.forEach((r, idx) => {
+          const horse = this.horses[idx];
+          horse.root.position.x = r.x;
+          horse.updateAnimation(dt, r.speed, raceState.phase === 'racing');
+
+          if (r.x > leadX) leadX = r.x;
+          avgX += r.x;
+
+          if (raceState.phase === 'racing' && r.speed > 7 && Math.random() < 0.42) {
+            this.spawnDust(r.x, this.laneZ[idx]);
+          }
+        });
+        avgX /= raceState.runners.length;
+
+        // Update dust particle pool
+        for (let i = 0; i < this.particles.length; i++) {
+          const p = this.particles[i];
+          if (p.life > 0) {
+            p.life -= dt;
+            p.mesh.position.addScaledVector(p.vel, dt);
+            p.vel.y -= 4.2 * dt;
+            const norm = Math.max(0, p.life / p.maxLife);
+            p.mesh.material.opacity = norm * 0.65;
+            p.mesh.scale.addScalar(dt * 1.4);
+            if (p.life <= 0) p.mesh.visible = false;
+          }
+        }
+
+        // Smoothly decay manual camera orbit during active race
+        if (raceState.phase === 'racing' && !this.isDragging) {
+          this.cameraOrbitOffset.x *= 0.94;
+          this.cameraOrbitOffset.y *= 0.94;
+        }
+
+        // Cinematic Camera Tracking
+        let targetCamPos = new THREE.Vector3();
+        let targetLook = new THREE.Vector3();
+
+        if (raceState.phase === 'betting' || raceState.phase === 'countdown') {
+          const sway = Math.sin(this.time * 0.55) * 1.8;
+          targetCamPos.set(12.5 + this.cameraOrbitOffset.x + sway, 6.2 + this.cameraOrbitOffset.y, 17.5);
+          targetLook.set(2.5, 1.8, 0);
+        } else {
+          const focusX = leadX * 0.68 + avgX * 0.32;
+          const nearFinish = leadX > this.trackLength - 22;
+
+          if (nearFinish) {
+            // Dramatic low-angle Photo Finish camera near Point B
+            targetCamPos.set(
+              Math.min(this.trackLength + 12, focusX + 10) + this.cameraOrbitOffset.x * 0.3,
+              4.4 + this.cameraOrbitOffset.y * 0.25,
+              14.5
+            );
+            targetLook.set(Math.min(this.trackLength, leadX), 1.8, 0);
+          } else {
+            // Dynamic side-3/4 broadcast tracking camera
+            targetCamPos.set(
+              focusX + 8.5 + this.cameraOrbitOffset.x,
+              6.6 + this.cameraOrbitOffset.y,
+              21.5
+            );
+            targetLook.set(focusX + 3.5, 1.8, 0);
+          }
+        }
+
+        this.camera.position.lerp(targetCamPos, Math.min(1, dt * 4.5));
+        this.cameraLookAt.lerp(targetLook, Math.min(1, dt * 6.0));
+        this.camera.lookAt(this.cameraLookAt);
+
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    /* =========================================================================
+     * 5. RACE SIMULATION & DYNAMIC ODDS ENGINE (DETERMINISTIC SEED SUPPORT)
+     * ========================================================================= */
+    class RaceSimulation {
+      constructor(trackLength = 180) {
+        this.trackLength = trackLength;
+        this.phase = 'betting'; // betting | countdown | racing | finished
+        this.runners = [];
+        this.finishOrder = [];
+        this.elapsed = 0;
+        this.slowMoFactor = 1.0;
+        this.rng = Math.random;
+      }
+
+      generateField(seed = null) {
+        this.rng = seed !== null ? mulberry32(seed) : Math.random;
+        this.phase = 'betting';
+        this.finishOrder = [];
+        this.elapsed = 0;
+        this.slowMoFactor = 1.0;
+
+        // Generate hidden horse attributes & calculate realistic casino odds
+        const rawScores = [];
+        this.runners = HORSE_CATALOG.map((cfg, idx) => {
+          const baseSpeed = 12.2 + this.rng() * 2.1;
+          const stamina = 0.65 + this.rng() * 0.35;
+          const sprint = 1.2 + this.rng() * 2.6;
+          const consistency = 0.55 + this.rng() * 0.45;
+          const power = baseSpeed * 0.5 + stamina * 5.0 + sprint * 0.9 + consistency * 2.0;
+          rawScores.push(power);
+
+          return {
+            id: cfg.id,
+            index: idx,
+            name: cfg.name,
+            silk: cfg.silk,
+            baseSpeed,
+            stamina,
+            sprint,
+            consistency,
+            formRating: Math.round(55 + ((power - 11.5) / 6.0) * 44),
+            odds: 2.5,
+            x: 0,
+            speed: 0,
+            finished: false,
+            finishTime: 0,
+            // Pre-rolled deterministic race wave parameters
+            reactionDelay: 0.04 + this.rng() * 0.28,
+            surgePoint: 0.55 + this.rng() * 0.25,
+            surgeDuration: 0.16 + this.rng() * 0.14,
+            waveFreq: 0.9 + this.rng() * 1.1,
+            wavePhase: this.rng() * Math.PI * 2,
+            luckBias: (this.rng() - 0.48) * 1.6
+          };
+        });
+
+        // Softmax probabilities -> Odds (x1.8 to x14.0 with 5% house edge)
+        const maxScore = Math.max(...rawScores);
+        const exps = rawScores.map((s) => Math.exp((s - maxScore) * 0.95));
+        const sumExp = exps.reduce((a, b) => a + b, 0);
+
+        this.runners.forEach((r, idx) => {
+          const prob = exps[idx] / sumExp;
+          const rawOdds = (0.95 / prob);
+          r.odds = Number(Math.min(14.0, Math.max(1.8, rawOdds)).toFixed(1));
+          r.formRating = Math.min(98, Math.max(42, Math.round(40 + prob * 185)));
+        });
+      }
+
+      startRace() {
+        this.phase = 'racing';
+        this.elapsed = 0;
+        this.finishOrder = [];
+        this.slowMoFactor = 1.0;
+        this.runners.forEach((r) => {
+          r.x = 0;
+          r.speed = 0;
+          r.finished = false;
+          r.finishTime = 0;
+        });
+      }
+
+      step(rawDt) {
+        if (this.phase !== 'racing') return false;
+
+        // Photo-finish slow motion right as leader approaches X=180
+        const leadX = Math.max(...this.runners.map((r) => r.x));
+        if (leadX > this.trackLength - 9 && this.finishOrder.length < 3) {
+          this.slowMoFactor = 0.42;
+        } else {
+          this.slowMoFactor = Math.min(1.0, this.slowMoFactor + rawDt * 2.2);
+        }
+
+        const dt = rawDt * this.slowMoFactor;
+        this.elapsed += dt;
+
+        this.runners.forEach((r) => {
+          if (this.elapsed < r.reactionDelay) return;
+
+          const progress = Math.min(1.1, r.x / this.trackLength);
+          let targetSpeed = r.baseSpeed + r.luckBias;
+
+          // Natural pack rhythm & overtakes
+          const wave = Math.sin(this.elapsed * r.waveFreq + r.wavePhase) * (1.55 - r.consistency * 0.7);
+          targetSpeed += wave;
+
+          // Final third sprint surge
+          if (progress >= r.surgePoint && progress <= r.surgePoint + r.surgeDuration) {
+            targetSpeed += r.sprint * 1.15;
+          }
+
+          // Fatigue check near end for low-stamina runners
+          if (progress > 0.78) {
+            targetSpeed -= (1 - r.stamina) * 2.4;
+          }
+
+          // Smooth deceleration after crossing finish
+          if (r.finished) {
+            targetSpeed = Math.max(4.5, targetSpeed * 0.48);
+          }
+
+          r.speed += (targetSpeed - r.speed) * Math.min(1, dt * 3.4);
+          r.x += Math.max(0, r.speed) * dt;
+
+          if (!r.finished && r.x >= this.trackLength) {
+            r.finished = true;
+            r.finishTime = this.elapsed;
+            this.finishOrder.push(r);
+          }
+        });
+
+        // Finish race once all 6 cross or leader is well past finish
+        if (this.finishOrder.length === 6 || (this.finishOrder.length >= 3 && leadX > this.trackLength + 16)) {
+          // Ensure any remaining horses are appended in distance order
+          const remaining = this.runners
+            .filter((r) => !r.finished)
+            .sort((a, b) => b.x - a.x);
+          remaining.forEach((r) => {
+            r.finished = true;
+            this.finishOrder.push(r);
+          });
+          this.phase = 'finished';
+          return true;
+        }
+        return false;
+      }
+
+      getLiveRankings() {
+        return [...this.runners].sort((a, b) => {
+          if (a.finished && b.finished) return a.finishTime - b.finishTime;
+          if (a.finished) return -1;
+          if (b.finished) return 1;
+          return b.x - a.x;
+        });
+      }
+    }
+
+    /* =========================================================================
+     * 6. ONLINE MANAGER (FIRESTORE MULTIPLAYER + DETERMINISTIC SYNC)
+     * ========================================================================= */
+    class OnlineManager {
+      constructor() {
+        this.db = null;
+        this.auth = null;
+        this.user = null;
+        this.userId = 'VIP-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+        this.nickname = 'VIP Игрок #' + Math.floor(100 + Math.random() * 899);
+        this.appId = typeof __app_id !== 'undefined' ? __app_id : 'nvr-vip-turf-club';
+        this.connected = false;
+        this.leaderboard = [];
+        this.recentBets = [];
+        this.onlineCount = 1;
+        this.onUpdateCallback = null;
+
+        // Global synchronized round cycle: 44 seconds per round
+        // 0..22s: Betting | 22..25s: Countdown | 25..39s: Racing | 39..44s: Results
+        this.ROUND_DURATION = 44;
+        this.BETTING_END = 22;
+        this.COUNTDOWN_END = 25;
+      }
+
+      async init(onUpdate) {
+        this.onUpdateCallback = onUpdate;
+        try {
+          if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+            this.initFallbackRoom();
+            return null;
+          }
+          const firebaseConfig = JSON.parse(__firebase_config);
+          const app = initializeApp(firebaseConfig);
+          this.auth = getAuth(app);
+          this.db = getFirestore(app);
+
+          // RULE 3: Auth before any Firestore query
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            const cred = await signInWithCustomToken(this.auth, __initial_auth_token);
+            this.user = cred.user;
+          } else {
+            const cred = await signInAnonymously(this.auth);
+            this.user = cred.user;
+          }
+
+          if (!this.user) {
+            this.initFallbackRoom();
+            return null;
+          }
+
+          this.userId = this.user.uid;
+          this.connected = true;
+
+          // Load user's saved USD balance & nickname from private path (RULE 1)
+          const profileRef = doc(this.db, 'artifacts', this.appId, 'users', this.userId, 'profile', 'main');
+          const snap = await getDoc(profileRef);
+          let savedBalance = null;
+          if (snap.exists()) {
+            const data = snap.data();
+            if (typeof data.balance === 'number') savedBalance = data.balance;
+            if (data.nickname) this.nickname = data.nickname;
+          }
+
+          this.subscribePublicCollections();
+          return savedBalance;
+        } catch (err) {
+          console.warn('Online Firestore fallback active:', err);
+          this.initFallbackRoom();
+          return null;
+        }
+      }
+
+      initFallbackRoom() {
+        this.connected = false;
+        this.onlineCount = 12 + Math.floor(Math.random() * 14);
+        this.leaderboard = [
+          { uid: 'vip-1', nickname: 'Максим_VIP', balance: 48500 },
+          { uid: 'vip-2', nickname: 'Elena_Royale', balance: 32400 },
+          { uid: 'vip-3', nickname: 'NVR_Shark', balance: 24900 },
+          { uid: this.userId, nickname: this.nickname, balance: 10000 }
+        ];
+        if (this.onUpdateCallback) this.onUpdateCallback();
+      }
+
+      subscribePublicCollections() {
+        if (!this.user || !this.db) return;
+
+        // RULE 1 & RULE 2: Simple collection() queries, sort in JS memory
+        const lbCol = collection(this.db, 'artifacts', this.appId, 'public', 'data', 'leaderboard');
+        onSnapshot(lbCol, (snap) => {
+          const list = [];
+          snap.forEach((d) => {
+            const data = d.data();
+            list.push({
+              uid: d.id,
+              nickname: data.nickname || 'VIP Игрок',
+              balance: Number(data.balance || 0),
+              updatedAt: Number(data.updatedAt || 0)
+            });
+          });
+          list.sort((a, b) => b.balance - a.balance);
+          this.leaderboard = list.slice(0, 12);
+
+          // Count active players in last 10 minutes
+          const now = Date.now();
+          const active = list.filter((p) => now - p.updatedAt < 600000).length;
+          this.onlineCount = Math.max(1, active);
+          if (this.onUpdateCallback) this.onUpdateCallback();
+        }, (err) => {
+          console.warn('Leaderboard snapshot error:', err);
+        });
+
+        const betsCol = collection(this.db, 'artifacts', this.appId, 'public', 'data', 'online_bets');
+        onSnapshot(betsCol, (snap) => {
+          const bets = [];
+          snap.forEach((d) => bets.push(d.data()));
+          bets.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          this.recentBets = bets.slice(0, 8);
+          if (this.onUpdateCallback) this.onUpdateCallback();
+        }, (err) => {
+          console.warn('Online bets snapshot error:', err);
+        });
+      }
+
+      async syncProfile(balance) {
+        // Update local fallback leaderboard
+        const existing = this.leaderboard.find((p) => p.uid === this.userId);
+        if (existing) {
+          existing.balance = balance;
+          existing.nickname = this.nickname;
+        } else {
+          this.leaderboard.push({ uid: this.userId, nickname: this.nickname, balance });
+        }
+        this.leaderboard.sort((a, b) => b.balance - a.balance);
+
+        if (!this.user || !this.db) return;
+        try {
+          const payload = {
+            nickname: this.nickname,
+            balance: Math.round(balance),
+            updatedAt: Date.now()
+          };
+          await setDoc(doc(this.db, 'artifacts', this.appId, 'users', this.userId, 'profile', 'main'), payload, { merge: true });
+          await setDoc(doc(this.db, 'artifacts', this.appId, 'public', 'data', 'leaderboard', this.userId), payload, { merge: true });
+        } catch (err) {
+          console.warn('Sync profile error:', err);
+        }
+      }
+
+      async broadcastBet(roundId, horseName, amount, betType) {
+        const msg = {
+          nickname: this.nickname,
+          roundId,
+          horseName,
+          amount,
+          betType,
+          createdAt: Date.now()
+        };
+        this.recentBets.unshift(msg);
+        if (this.recentBets.length > 8) this.recentBets.pop();
+        if (this.onUpdateCallback) this.onUpdateCallback();
+
+        if (!this.user || !this.db) return;
+        try {
+          await addDoc(collection(this.db, 'artifacts', this.appId, 'public', 'data', 'online_bets'), msg);
+        } catch (err) {
+          console.warn('Broadcast bet error:', err);
+        }
+      }
+
+      getGlobalRoundInfo() {
+        const nowSec = Math.floor(Date.now() / 1000);
+        const roundId = Math.floor(nowSec / this.ROUND_DURATION);
+        const secInRound = nowSec % this.ROUND_DURATION;
+        let phase = 'betting';
+        let timeLeft = this.BETTING_END - secInRound;
+        if (secInRound >= this.BETTING_END && secInRound < this.COUNTDOWN_END) {
+          phase = 'countdown';
+          timeLeft = this.COUNTDOWN_END - secInRound;
+        } else if (secInRound >= this.COUNTDOWN_END) {
+          phase = 'racing';
+          timeLeft = this.ROUND_DURATION - secInRound;
+        }
+        return { roundId, secInRound, phase, timeLeft };
+      }
+    }
+
+    /* =========================================================================
+     * 7. GAME STATE (USD BANKROLL, BETS, HISTORY)
+     * ========================================================================= */
+    class GameState {
+      constructor() {
+        this.mode = 'solo'; // 'solo' | 'online'
+        this.balance = 10000; // Starting VIP Bankroll in USD ($)
+        this.raceNumber = 1;
+        this.selectedHorseId = 1;
+        this.selectedChip = 100;
+        this.betType = 'win'; // 'win' | 'place' | 'show'
+        this.bets = {}; // { [horseId]: amountUSD }
+        this.lastBets = {};
+        this.history = []; // last 5 winner IDs
+        this.onlineRoundId = null;
+        this.onlineRaceTriggered = false;
+      }
+
+      getTotalBet() {
+        return Object.values(this.bets).reduce((sum, v) => sum + v, 0);
+      }
+
+      getEffectiveMultiplier(baseOdds, betType = this.betType) {
+        if (betType === 'win') return baseOdds;
+        if (betType === 'place') return Math.max(1.2, Number((1 + (baseOdds - 1) * 0.48).toFixed(2)));
+        return Math.max(1.1, Number((1 + (baseOdds - 1) * 0.28).toFixed(2)));
+      }
+
+      getPotentialMaxWin(runners) {
+        let maxWin = 0;
+        for (const [hIdStr, amt] of Object.entries(this.bets)) {
+          if (amt <= 0) continue;
+          const r = runners.find((x) => x.id === Number(hIdStr));
+          if (!r) continue;
+          const mult = this.getEffectiveMultiplier(r.odds);
+          maxWin = Math.max(maxWin, Math.round(amt * mult));
+        }
+        return maxWin;
+      }
+
+      placeBet(horseId, amount) {
+        if (amount <= 0 || amount > this.balance) return false;
+        this.balance -= amount;
+        this.bets[horseId] = (this.bets[horseId] || 0) + amount;
+        return true;
+      }
+
+      clearBets() {
+        const total = this.getTotalBet();
+        this.balance += total;
+        this.bets = {};
+      }
+
+      doubleBets() {
+        const total = this.getTotalBet();
+        if (total <= 0 || total > this.balance) return false;
+        this.balance -= total;
+        for (const k of Object.keys(this.bets)) {
+          this.bets[k] *= 2;
+        }
+        return true;
+      }
+
+      halfBets() {
+        const total = this.getTotalBet();
+        if (total <= 0) return false;
+        let refunded = 0;
+        for (const k of Object.keys(this.bets)) {
+          const newVal = Math.floor(this.bets[k] / 2);
+          refunded += this.bets[k] - newVal;
+          if (newVal <= 0) delete this.bets[k];
+          else this.bets[k] = newVal;
+        }
+        this.balance += refunded;
+        return true;
+      }
+
+      rebet() {
+        const needed = Object.values(this.lastBets).reduce((a, b) => a + b, 0);
+        if (needed <= 0) return false;
+        this.clearBets();
+        if (needed > this.balance) return false;
+        for (const [k, v] of Object.entries(this.lastBets)) {
+          this.placeBet(Number(k), v);
+        }
+        return true;
+      }
+
+      settleRace(finishOrder) {
+        const topIds = finishOrder.map((r) => r.id);
+        let totalPayout = 0;
+        const winCount = this.betType === 'win' ? 1 : this.betType === 'place' ? 2 : 3;
+        const winningSlice = topIds.slice(0, winCount);
+
+        for (const [hIdStr, amt] of Object.entries(this.bets)) {
+          const hId = Number(hIdStr);
+          if (amt > 0 && winningSlice.includes(hId)) {
+            const runner = finishOrder.find((r) => r.id === hId);
+            const mult = this.getEffectiveMultiplier(runner.odds);
+            totalPayout += Math.round(amt * mult);
+          }
+        }
+
+        if (this.getTotalBet() > 0) {
+          this.lastBets = { ...this.bets };
+        }
+        this.bets = {};
+        this.balance += totalPayout;
+
+        this.history.unshift(topIds[0]);
+        if (this.history.length > 5) this.history.pop();
+
+        return totalPayout;
+      }
+    }
+
+    /* =========================================================================
+     * 8. UI MANAGER & ORCHESTRATOR
+     * ========================================================================= */
+    class UIManager {
+      constructor() {
+        this.sound = new SoundEngine();
+        this.state = new GameState();
+        this.sim = new RaceSimulation(180);
+        this.online = new OnlineManager();
+        this.track3D = new Track3DScene(
+          document.getElementById('three-canvas'),
+          document.getElementById('stage-wrapper')
+        );
+
+        this.displayedBalance = this.state.balance;
+        this.lastFrameTime = performance.now();
+        this.onlinePollTimer = null;
+        this.toastTimer = null;
+
+        this.dom = {
+          preloader: document.getElementById('preloader'),
+          loaderBar: document.getElementById('loader-bar'),
+          loaderPct: document.getElementById('loader-pct'),
+          loaderStatus: document.getElementById('loader-status'),
+          enterBtn: document.getElementById('enter-btn'),
+          balanceDisplay: document.getElementById('balance-display'),
+          topupBtn: document.getElementById('topup-btn'),
+          soundBtn: document.getElementById('sound-btn'),
+          soundIconOn: document.getElementById('sound-icon-on'),
+          soundIconOff: document.getElementById('sound-icon-off'),
+          fsBtn: document.getElementById('fullscreen-btn'),
+          btnModeSolo: document.getElementById('btn-mode-solo'),
+          btnModeOnline: document.getElementById('btn-mode-online'),
+          statusBadge: document.getElementById('race-status-badge'),
+          historyPills: document.getElementById('history-pills'),
+          countdownBanner: document.getElementById('countdown-banner'),
+          countdownText: document.getElementById('countdown-text'),
+          trackerRail: document.getElementById('tracker-rail'),
+          leadersMini: document.getElementById('leaders-mini'),
+          onlineTicker: document.getElementById('online-ticker'),
+          tickerMsg: document.getElementById('ticker-msg'),
+          onlineCount: document.getElementById('online-count'),
+          horsesGrid: document.getElementById('horses-grid'),
+          betTypeTabs: document.getElementById('bet-type-tabs'),
+          chipsRow: document.getElementById('chips-row'),
+          totalBetVal: document.getElementById('total-bet-val'),
+          potentialWinVal: document.getElementById('potential-win-val'),
+          startRaceBtn: document.getElementById('start-race-btn'),
+          resultModal: document.getElementById('result-modal'),
+          resultTitle: document.getElementById('result-title'),
+          podiumList: document.getElementById('podium-list'),
+          winBanner: document.getElementById('win-banner'),
+          winLabel: document.getElementById('win-label'),
+          winAmountVal: document.getElementById('win-amount-val'),
+          nextRaceBtn: document.getElementById('next-race-btn'),
+          lbBtn: document.getElementById('lb-btn'),
+          lbModal: document.getElementById('lb-modal'),
+          lbList: document.getElementById('lb-list'),
+          uidDisplay: document.getElementById('uid-display'),
+          nickInput: document.getElementById('nickname-input'),
+          saveNickBtn: document.getElementById('save-nick-btn'),
+          closeLbBtn: document.getElementById('close-lb-btn'),
+          toast: document.getElementById('toast-msg')
+        };
+      }
+
+      async boot() {
+        const updateLoader = (pct, text) => {
+          this.dom.loaderBar.style.width = pct + '%';
+          this.dom.loaderPct.textContent = pct + '%';
+          this.dom.loaderStatus.textContent = text;
+        };
+
+        // Initialize 3D scene & online connection
+        await this.track3D.init(updateLoader);
+        const savedBal = await this.online.init(() => this.renderOnlineData());
+        if (typeof savedBal === 'number' && savedBal >= 0) {
+          this.state.balance = savedBal;
+          this.displayedBalance = savedBal;
+        }
+        this.online.syncProfile(this.state.balance);
+
+        // Generate first race field
+        this.sim.generateField();
+        this.buildTrackerMarkers();
+        this.renderHorses();
+        this.renderHUD();
+        this.bindEvents();
+
+        // Reveal "ВОЙТИ В ЗАЛ" button via GSAP
+        gsap.to(this.dom.enterBtn, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.65,
+          ease: 'back.out(1.6)',
+          onStart: () => { this.dom.enterBtn.style.pointerEvents = 'auto'; }
+        });
+
+        // Start 3D render loop
+        this.lastFrameTime = performance.now();
+        this.animateLoop();
+      }
+
+      bindEvents() {
+        // Enter VIP Hall (unlocks Web Audio API on mobile)
+        this.dom.enterBtn.addEventListener('click', () => {
+          this.sound.init();
+          this.sound.playChip();
+          gsap.to(this.dom.preloader, {
+            opacity: 0,
+            scale: 1.04,
+            duration: 0.55,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              this.dom.preloader.style.display = 'none';
+              this.track3D.resize();
+            }
+          });
+        });
+
+        // Mode Switcher (SOLO vs ONLINE)
+        this.dom.btnModeSolo.addEventListener('click', () => this.switchMode('solo'));
+        this.dom.btnModeOnline.addEventListener('click', () => this.switchMode('online'));
+
+        // Sound Mute/Unmute
+        this.dom.soundBtn.addEventListener('click', () => {
+          this.sound.init();
+          const muted = this.sound.toggleMute();
+          this.dom.soundBtn.classList.toggle('muted', muted);
+          this.dom.soundIconOn.style.display = muted ? 'none' : 'block';
+          this.dom.soundIconOff.style.display = muted ? 'block' : 'none';
+        });
+
+        // Fullscreen API
+        this.dom.fsBtn.addEventListener('click', () => {
+          this.sound.playClick();
+          const docEl = document.documentElement;
+          if (!document.fullscreenElement) {
+            if (docEl.requestFullscreen) docEl.requestFullscreen().catch(() => {});
+          } else {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          }
+        });
+
+        // Free VIP Top-Up when low/zero
+        this.dom.topupBtn.addEventListener('click', () => {
+          this.sound.playChip();
+          if (this.state.balance < 500) {
+            this.state.balance += 5000;
+            this.animateBalance();
+            this.online.syncProfile(this.state.balance);
+            this.showToast('VIP-Бонус: +$5,000 зачислено!');
+          } else {
+            this.showToast('Пополнение доступно при балансе ниже $500');
+          }
+        });
+
+        // Bet Type Switcher
+        this.dom.betTypeTabs.querySelectorAll('.bet-tab').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (this.sim.phase !== 'betting') return;
+            this.sound.playClick();
+            this.state.betType = btn.dataset.type;
+            this.dom.betTypeTabs.querySelectorAll('.bet-tab').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            this.renderHorses();
+            this.renderHUD();
+          });
+        });
+
+        // Casino Chips Selection
+        this.dom.chipsRow.querySelectorAll('.chip-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (this.sim.phase !== 'betting') return;
+            this.sound.playChip();
+            this.dom.chipsRow.querySelectorAll('.chip-btn').forEach((b) => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            this.state.selectedChip = btn.dataset.val === 'max' ? 'max' : Number(btn.dataset.val);
+          });
+        });
+
+        // Quick Bet Modifiers
+        document.getElementById('btn-half').addEventListener('click', () => {
+          if (this.sim.phase !== 'betting') return;
+          if (this.state.halfBets()) {
+            this.sound.playChip();
+            this.renderHorses();
+            this.renderHUD();
+          }
+        });
+
+        document.getElementById('btn-double').addEventListener('click', () => {
+          if (this.sim.phase !== 'betting') return;
+          if (this.state.doubleBets()) {
+            this.sound.playChip();
+            this.renderHorses();
+            this.renderHUD();
+          } else {
+            this.showToast('Недостаточно средств для ×2');
+          }
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+          if (this.sim.phase !== 'betting') return;
+          this.sound.playClick();
+          this.state.clearBets();
+          this.renderHorses();
+          this.renderHUD();
+        });
+
+        document.getElementById('btn-rebet').addEventListener('click', () => {
+          if (this.sim.phase !== 'betting') return;
+          if (this.state.rebet()) {
+            this.sound.playChip();
+            this.renderHorses();
+            this.renderHUD();
+          } else {
+            this.showToast('Нет прошлой ставки или не хватает $');
+          }
+        });
+
+        // Start Race CTA
+        this.dom.startRaceBtn.addEventListener('click', () => {
+          if (this.state.mode === 'online') {
+            this.showToast('В Онлайн-режиме забег стартует автоматически по таймеру!');
+            return;
+          }
+          if (this.sim.phase !== 'betting') return;
+          this.sound.playClick();
+          this.beginRaceSequence();
+        });
+
+        // Next Race Button inside Result Modal
+        this.dom.nextRaceBtn.addEventListener('click', () => {
+          this.sound.playClick();
+          this.dom.resultModal.classList.remove('open');
+          if (this.state.mode === 'solo') {
+            this.prepareNextSoloRace();
+          }
+        });
+
+        // Online Leaderboard & Profile Modal
+        this.dom.lbBtn.addEventListener('click', () => {
+          this.sound.playClick();
+          this.dom.nickInput.value = this.online.nickname;
+          this.dom.uidDisplay.textContent = 'VIP ID: ' + this.online.userId;
+          this.renderOnlineData();
+          this.dom.lbModal.classList.add('open');
+        });
+
+        this.dom.closeLbBtn.addEventListener('click', () => {
+          this.sound.playClick();
+          this.dom.lbModal.classList.remove('open');
+        });
+
+        this.dom.saveNickBtn.addEventListener('click', () => {
+          const val = this.dom.nickInput.value.trim();
+          if (val.length >= 2) {
+            this.online.nickname = val;
+            this.online.syncProfile(this.state.balance);
+            this.sound.playChip();
+            this.showToast('Имя сохранено: ' + val);
+          }
+        });
+      }
+
+      switchMode(newMode) {
+        if (this.state.mode === newMode) return;
+        if (this.sim.phase === 'racing' || this.sim.phase === 'countdown') {
+          this.showToast('Дождитесь окончания текущего забега');
+          return;
+        }
+        this.sound.playClick();
+        this.state.clearBets();
+        this.state.mode = newMode;
+
+        this.dom.btnModeSolo.classList.toggle('active', newMode === 'solo');
+        this.dom.btnModeOnline.classList.toggle('active', newMode === 'online');
+        this.dom.onlineTicker.classList.toggle('visible', newMode === 'online');
+
+        if (this.onlinePollTimer) {
+          clearInterval(this.onlinePollTimer);
+          this.onlinePollTimer = null;
+        }
+
+        if (newMode === 'online') {
+          this.showToast('Подключение к синхронизированному VIP-залу...');
+          this.syncOnlineRound(true);
+          this.onlinePollTimer = setInterval(() => this.syncOnlineRound(false), 400);
+        } else {
+          this.prepareNextSoloRace();
+          this.showToast('Активирован режим SOLO VIP');
+        }
+      }
+
+      syncOnlineRound(forceInit) {
+        if (this.state.mode !== 'online') return;
+        const info = this.online.getGlobalRoundInfo();
+
+        if (forceInit || this.state.onlineRoundId !== info.roundId) {
+          this.state.onlineRoundId = info.roundId;
+          this.state.onlineRaceTriggered = false;
+          this.state.raceNumber = info.roundId % 10000;
+          this.dom.resultModal.classList.remove('open');
+
+          // Deterministic seed ensures every online player gets the exact same horses & winner
+          this.sim.generateField(info.roundId * 2654435761);
+          this.track3D.resetGatesAndPositions();
+          this.renderHorses();
+          this.renderHUD();
+
+          // If joined mid-race, wait cleanly for next round
+          if (info.phase !== 'betting') {
+            this.sim.phase = 'finished';
+            this.state.onlineRaceTriggered = true;
+          }
+        }
+
+        if (info.phase === 'betting' && this.sim.phase === 'betting') {
+          this.dom.statusBadge.textContent = `ONLINE #${this.state.raceNumber} • СТАВКИ ${info.timeLeft}s`;
+          this.dom.startRaceBtn.disabled = true;
+          this.dom.startRaceBtn.textContent = `ОНЛАЙН СТАРТ ЧЕРЕЗ ${info.timeLeft}с`;
+        } else if (info.phase === 'countdown' && !this.state.onlineRaceTriggered) {
+          this.state.onlineRaceTriggered = true;
+          this.beginRaceSequence();
+        } else if (this.sim.phase === 'finished') {
+          this.dom.statusBadge.textContent = `СЛЕД. ОНЛАЙН ЗАБЕГ: ${info.timeLeft}s`;
+          this.dom.startRaceBtn.disabled = true;
+          this.dom.startRaceBtn.textContent = `ОЖИДАНИЕ РАУНДА (${info.timeLeft}с)`;
+        }
+      }
+
+      prepareNextSoloRace() {
+        this.state.raceNumber++;
+        this.sim.generateField(null);
+        this.track3D.resetGatesAndPositions();
+        this.renderHorses();
+        this.renderHUD();
+      }
+
+      buildTrackerMarkers() {
+        this.dom.trackerRail.innerHTML = '';
+        this.trackerEls = HORSE_CATALOG.map((h) => {
+          const el = document.createElement('div');
+          el.className = 'tracker-marker';
+          el.style.background = h.silk;
+          el.textContent = h.id;
+          this.dom.trackerRail.appendChild(el);
+          return el;
+        });
+      }
+
+      renderHorses() {
+        this.dom.horsesGrid.innerHTML = '';
+        this.sim.runners.forEach((r) => {
+          const card = document.createElement('div');
+          const betAmt = this.state.bets[r.id] || 0;
+          const effOdds = this.state.getEffectiveMultiplier(r.odds);
+          card.className = 'horse-card' +
+            (this.state.selectedHorseId === r.id ? ' selected' : '') +
+            (betAmt > 0 ? ' has-bet' : '');
+
+          card.innerHTML = `
+            <div class="silk-badge" style="background:${r.silk}">${r.id}</div>
+            <div class="horse-info">
+              <div class="horse-name">${r.name}</div>
+              <div class="horse-stats-row">
+                <div class="form-bar-bg">
+                  <div class="form-bar-fill" style="width:${r.formRating}%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="horse-right">
+              <div class="odds-led">x${effOdds.toFixed(1)}</div>
+              <div class="bet-badge ${betAmt > 0 ? 'active' : ''}">${formatUSD(betAmt)}</div>
+            </div>
+          `;
+
+          card.addEventListener('click', () => {
+            if (this.sim.phase !== 'betting') return;
+            this.state.selectedHorseId = r.id;
+            const amount = this.state.selectedChip === 'max' ? this.state.balance : this.state.selectedChip;
+            if (amount <= 0) {
+              this.showToast('Баланс пуст! Нажмите + для VIP-бонуса');
+              return;
+            }
+            if (this.state.placeBet(r.id, amount)) {
+              this.sound.playChip();
+              gsap.fromTo(card, { scale: 0.95 }, { scale: 1, duration: 0.2, ease: 'back.out(2)' });
+              if (this.state.mode === 'online') {
+                this.online.broadcastBet(this.state.onlineRoundId, r.name, amount, this.state.betType);
+              }
+              this.renderHorses();
+              this.renderHUD();
+            } else {
+              this.showToast('Недостаточно средств на балансе');
+            }
+          });
+
+          this.dom.horsesGrid.appendChild(card);
+        });
+      }
+
+      renderHUD() {
+        this.animateBalance();
+        const totalBet = this.state.getTotalBet();
+        const potWin = this.state.getPotentialMaxWin(this.sim.runners);
+        this.dom.totalBetVal.textContent = formatUSD(totalBet);
+        this.dom.potentialWinVal.textContent = formatUSD(potWin);
+
+        if (this.state.mode === 'solo') {
+          if (this.sim.phase === 'betting') {
+            this.dom.statusBadge.textContent = `ЗАБЕГ #${this.state.raceNumber} • СТАВКИ`;
+            this.dom.startRaceBtn.disabled = false;
+            this.dom.startRaceBtn.textContent = totalBet > 0 ? `НАЧАТЬ ЗАБЕГ (${formatUSD(totalBet)})` : 'НАЧАТЬ ЗАБЕГ (ПРОСМОТР)';
+          } else if (this.sim.phase === 'racing') {
+            this.dom.statusBadge.textContent = `ЗАБЕГ #${this.state.raceNumber} • В ЭФИРЕ`;
+            this.dom.startRaceBtn.disabled = true;
+            this.dom.startRaceBtn.textContent = 'ИДЕТ ЗАБЕГ...';
+          }
+        }
+
+        // Render last 5 winners history
+        const histHtml = ['<span class="history-label">ИСТ</span>'];
+        if (this.state.history.length === 0) {
+          histHtml.push('<span style="font-size:9px;color:#6B7280;">—</span>');
+        } else {
+          this.state.history.forEach((hId) => {
+            const cfg = HORSE_CATALOG.find((x) => x.id === hId);
+            histHtml.push(`<span class="hist-dot" style="background:${cfg.silk}">${hId}</span>`);
+          });
+        }
+        this.dom.historyPills.innerHTML = histHtml.join('');
+      }
+
+      renderOnlineData() {
+        this.dom.onlineCount.textContent = String(this.online.onlineCount);
+        if (this.online.recentBets.length > 0) {
+          const b = this.online.recentBets[0];
+          this.dom.tickerMsg.textContent = `${b.nickname} поставил ${formatUSD(b.amount)} на «${b.horseName}»`;
+        }
+
+        // Leaderboard list inside modal
+        this.dom.lbList.innerHTML = this.online.leaderboard.slice(0, 7).map((p, idx) => `
+          <div class="lb-row ${p.uid === this.online.userId ? 'me' : ''}">
+            <span><strong>#${idx + 1}</strong> ${p.nickname}</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:#FCE08B;font-weight:700;">${formatUSD(p.balance)}</span>
+          </div>
+        `).join('');
+      }
+
+      animateBalance() {
+        const target = this.state.balance;
+        gsap.to(this, {
+          displayedBalance: target,
+          duration: 0.5,
+          ease: 'power2.out',
+          onUpdate: () => {
+            this.dom.balanceDisplay.textContent = formatUSD(this.displayedBalance);
+          }
+        });
+      }
+
+      beginRaceSequence() {
+        this.sim.phase = 'countdown';
+        this.dom.startRaceBtn.disabled = true;
+        this.dom.startRaceBtn.textContent = 'ПРИГОТОВИТЬСЯ...';
+
+        const steps = ['3', '2', '1', 'СТАРТ!'];
+        let i = 0;
+
+        const runStep = () => {
+          const isGo = i === steps.length - 1;
+          this.sound.playCountdown(isGo);
+          this.dom.countdownText.textContent = steps[i];
+          gsap.fromTo(
+            this.dom.countdownBanner,
+            { opacity: 1, scale: 0.45 },
+            { opacity: 0, scale: 1.35, duration: 0.72, ease: 'power2.out' }
+          );
+
+          if (isGo) {
+            this.track3D.openGates();
+            this.sim.startRace();
+            this.sound.startRaceAudio();
+            this.renderHUD();
+          } else {
+            i++;
+            setTimeout(runStep, 750);
+          }
+        };
+        runStep();
+      }
+
+      onRaceFinished() {
+        this.sound.stopRaceAudio();
+        const totalBet = this.state.getTotalBet();
+        const payout = this.state.settleRace(this.sim.finishOrder);
+        this.online.syncProfile(this.state.balance);
+        this.renderHUD();
+        this.renderHorses();
+
+        // Populate Podium Modal
+        this.dom.resultTitle.textContent = `РЕЗУЛЬТАТ ЗАБЕГА #${this.state.raceNumber}`;
+        const medals = ['🥇 1-е место', '🥈 2-е место', '🥉 3-е место'];
+        this.dom.podiumList.innerHTML = this.sim.finishOrder.slice(0, 3).map((r, i) => `
+          <div class="podium-row ${i === 0 ? 'first' : ''}">
+            <div class="podium-left">
+              <span class="hist-dot" style="width:20px;height:20px;font-size:10px;background:${r.silk}">${r.id}</span>
+              <span>${r.name}</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#FCE08B;">${medals[i]} • x${r.odds.toFixed(1)}</span>
+          </div>
+        `).join('');
+
+        if (payout > 0) {
+          this.dom.winBanner.classList.remove('loss');
+          this.dom.winLabel.textContent = 'ПОЗДРАВЛЯЕМ! ВАШ ВЫИГРЫШ';
+          this.dom.winAmountVal.textContent = '+' + formatUSD(payout);
+          this.sound.playWin();
+          if (typeof confetti === 'function') {
+            confetti({
+              particleCount: 85,
+              spread: 70,
+              origin: { y: 0.55 },
+              colors: ['#FCE08B', '#D4AF37', '#FFFFFF', '#22C55E']
+            });
+          }
+        } else {
+          this.dom.winBanner.classList.add('loss');
+          this.dom.winLabel.textContent = totalBet > 0 ? 'СТАВКА НЕ СЫГРАЛА' : 'ПРОСМОТР ЗАБЕГА ЗАВЕРШЕН';
+          this.dom.winAmountVal.textContent = totalBet > 0 ? '-' + formatUSD(totalBet) : '$0';
+          if (totalBet > 0) this.sound.playLose();
+        }
+
+        this.dom.nextRaceBtn.textContent = this.state.mode === 'online' ? 'ЗАКРЫТЬ' : 'СЛЕДУЮЩИЙ ЗАБЕГ';
+        this.dom.resultModal.classList.add('open');
+        gsap.fromTo(
+          this.dom.resultModal.querySelector('.modal-card'),
+          { scale: 0.85, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.38, ease: 'back.out(1.6)' }
+        );
+      }
+
+      updateLiveTracker() {
+        const ranks = this.sim.getLiveRankings();
+        this.sim.runners.forEach((r, idx) => {
+          const pct = Math.min(97, Math.max(3, (r.x / this.sim.trackLength) * 94 + 3));
+          this.trackerEls[idx].style.left = pct + '%';
+        });
+
+        const top3 = ranks.slice(0, 3);
+        this.dom.leadersMini.innerHTML = top3.map((r, i) => `
+          <span class="leader-chip" style="border-color:${r.silk};color:#fff;">
+            ${i + 1}:<strong style="color:${r.silk === '#2563EB' ? '#93C5FD' : '#FCE08B'}">#${r.id}</strong>
+          </span>
+        `).join('');
+      }
+
+      showToast(message) {
+        this.dom.toast.textContent = message;
+        clearTimeout(this.toastTimer);
+        gsap.killTweensOf(this.dom.toast);
+        gsap.fromTo(this.dom.toast, { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.25 });
+        this.toastTimer = setTimeout(() => {
+          gsap.to(this.dom.toast, { opacity: 0, y: -10, duration: 0.25 });
+        }, 2300);
+      }
+
+      animateLoop() {
+        requestAnimationFrame(() => this.animateLoop());
+        const now = performance.now();
+        const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+        this.lastFrameTime = now;
+
+        if (this.sim.phase === 'racing') {
+          const finishedNow = this.sim.step(dt);
+          const leadProgress = Math.max(...this.sim.runners.map((r) => r.x)) / this.sim.trackLength;
+          this.sound.updateRaceAudio(leadProgress);
+          this.updateLiveTracker();
+          if (finishedNow) {
+            this.onRaceFinished();
+          }
+        }
+
+        this.track3D.update(dt, this.sim);
+      }
+    }
+
+    // Boot application on window load
+    window.onload = () => {
+      const app = new UIManager();
+      app.boot();
+    };
+  </script>
 </body>
 </html>
